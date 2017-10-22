@@ -116,8 +116,11 @@ int main(int argc, char **argv)
     pose_publisher = n.advertise<geometry_msgs::PoseStamped>("/pose", 1, true);
     marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 1, true);
     
-    //Velocity control variable
+    //Variable to publish
     geometry_msgs::Twist vel;
+	geometry_msgs::PoseStamped pose;
+	visualization_msgs::Marker marker;
+	
 
     //Set the loop rate
     ros::Rate loop_rate(20);    //20Hz update rate
@@ -132,7 +135,10 @@ int main(int argc, char **argv)
     	vel.linear.x = 0.1; // set linear speed
     	vel.angular.z = 0.3; // set angular speed
 
-    	velocity_publisher.publish(vel); // Publish the command velocity
+		//Publishers
+    	velocity_publisher.publish(vel);
+		pose_publisher.publish(pose);
+		marker_pub.publish(marker); 
     }
 
     return 0;
