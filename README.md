@@ -9,6 +9,6 @@
 1. Run simulator
 roslaunch turtlebot_example turtlebot_gazebo.launch
 2. Run AMCL demo node, with saved map
-roslaunch turtlebot_example amcl_demo.launch map_file:='ABSOLUTE_PATH_TO_map.yaml
+roslaunch turtlebot_example amcl_demo.launch map_file:=/home/YOUR_NAME/catkin_ws/src/MTE_544_Repo/turtlebot_example/new_map.yaml
 3. Run turtlebot_example_node
 rosrun turtlebot_example turtlebot_example_node
