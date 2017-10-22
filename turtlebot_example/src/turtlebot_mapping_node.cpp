@@ -18,16 +18,19 @@
 #include <visualization_msgs/Marker.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <sensor_msgs/LaserScan.h>
-#include <>
+#include <math.h>
 
 const double MAP_X = 5; //meters
 const double MAP_Y = 5; //meters
 const double MAP_SIZE = 5;
-const double GRID_RES = 0.35; //meters 
+const double GRID_RES = 0.1; //meters 
 const double SCALE = MAP_SIZE/GRID_RES;
+const int scanSize = 134;
 
 ros::Publisher pose_publisher;
 ros::Publisher marker_pub;
+double currentScanVector[134];
+sensor_msgs::LaserScan currentScan; 
 
 double ips_x;
 double ips_y;
@@ -55,8 +58,8 @@ void pose_callback(const gazebo_msgs::ModelStates& msg)
 
 void scan_callback(const sensor_msgs::LaserScan& scan)
 {
-	//This function is called when a new LaserScan is received
-
+	currentScan = scan;
+	//This function is called when a new LaserScan is receive
 }
 
 //Callback function for the Position topic (LIVE)
@@ -110,12 +113,6 @@ void bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::vector<
     }
 }
 
-
-double applyXtransform(double x_obj, double y_obj, double x_robot, double y_robot, double angle) 
-{
-	double 
-}
-
 int main(int argc, char **argv)
 {
 	//Initialize the ROS framework
@@ -131,8 +128,15 @@ int main(int argc, char **argv)
     ros::Publisher map_publisher = n.advertise<nav_msgs::OccupancyGrid>("/map", 1);
 
 	//Occupancy Grid Variable
-	nav_msgs::OccupancyGrid occupancyGrid; 
-
+	nav_msgs::OccupancyGrid occupancyGrid;
+	
+	/*occupancyGrid.data = new int[50][50];
+	// initialize grid
+	for(int i = 0; i < 50; i++) {
+		for (int j = 0; j < 50; j++)
+		occupancyGrid.data[i][j] = 1/2500;		
+	}
+	*/
     //Set the loop rate
     ros::Rate loop_rate(30);    //20Hz update rate
 
@@ -140,7 +144,14 @@ int main(int argc, char **argv)
     {
     	loop_rate.sleep(); //Maintain the loop rate
     	ros::spinOnce();   //Check for new messages
-		
+		// iterate through laser scan
+		for (int i = 0; i < scanSize; i++)
+		{
+			double thetaScan = i*currentScan.angle_increment + currentScan.angle_min + ips_yaw;
+			double x = currentScan.ranges[i] * std::cos(thetaScan) + ips_x;
+			double y = currentScan.ranges[i] * std::sin(thetaScan) + ips_y;
+		}
+
     	//velocity_publisher.publish(vel); // Publish the command velocity
 		map_publisher.publish(occupancyGrid);
     }
