@@ -6,6 +6,16 @@
 3. cd ../ 
 4. catkin_make
 
+## Running Turtlebot and Mapping in Simulation
+- rosrun turtlebot_pos_client 
+- turtlebot_pos_client_node
+
+to successfully run sim, follow these steps:
+1) launch gazebo     	roslaunch turtlebot_example turtlebot_gazebo.launch
+2) launch rviz       	roslaunch turtlebot_rviz_launchers view_navigation.launch
+3) launch amcl		roslaunch turtlebot_example amcl_demo.launch map_file:=/home/jacob/TARosMap.yaml
+4) launch teleop	roslaunch turtlebot_teleop keyboard_teleop.launch
+
 ## How to run Lab 1 simulation
 1. Run simulator
 roslaunch turtlebot_example turtlebot_gazebo.launch
