@@ -1,5 +1,8 @@
 # MTE_544_Repo
-How to run Lab 1 simulation
+## How to setup
+1. cd ~/catkin_ws/src
+2. git checkout https://github.com/jclundy/MTE_544_Repo.git
+## How to run Lab 1 simulation
 1. Run simulator
 roslaunch turtlebot_example turtlebot_gazebo.launch
 2. Run AMCL demo node, with saved map
