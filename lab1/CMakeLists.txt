@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(turtlebot_example)
+project(lab1)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -106,22 +106,14 @@ include_directories(
 # )
 
 ## Declare a cpp executable
- add_executable(turtlebot_example_node src/turtlebot_example_node.cpp)
- add_executable(turtlebot_example_node_lab2 src/turtlebot_example_node_lab2.cpp)
- add_executable(turtlebot_mapping_node src/turtlebot_mapping_node.cpp)
+ add_executable(square_node src/square_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(turtlebot_example_node turtlebot_example_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
- target_link_libraries(turtlebot_example_node
-   ${catkin_LIBRARIES}
- )
- target_link_libraries(turtlebot_example_node_lab2
-   ${catkin_LIBRARIES}
- )
- target_link_libraries(turtlebot_mapping_node
+ target_link_libraries(square_node
    ${catkin_LIBRARIES}
  )
 #############
