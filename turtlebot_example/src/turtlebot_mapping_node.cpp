@@ -20,12 +20,10 @@
 #include <sensor_msgs/LaserScan.h>
 #include <math.h>
 
-#define GRID_SIZE 50
-const double MAP_UPPER_LIMIT = 2.5; //meters 
-const double MAP_LOWER_LIMIT = -2.5; //meters
-const double MAP_SIZE = 5;
-const double GRID_RES = 0.1; //meters 
-const double SCALE = MAP_SIZE/GRID_RES;
+#define GRID_SIZE 20
+const double MAP_UPPER_LIMIT = 2; //meters 
+const double MAP_LOWER_LIMIT = -2; //meters
+const double SCALE = GRID_SIZE / (MAP_UPPER_LIMIT - MAP_LOWER_LIMIT);
 const int scanSize = 134;
 
 ros::Publisher pose_publisher;
@@ -116,12 +114,38 @@ void bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::vector<
 
 int convert_coordinate_to_index(double coordinate) 
 {
-	int index = int(coordinate / GRID_RES - MAP_LOWER_LIMIT);
-	if(index < MAP_LOWER_LIMIT) {
+	int index = int((coordinate - MAP_LOWER_LIMIT)*SCALE);
+	if(index < 0) {
 		index = 0;
 	}
-	if(index > MAP_UPPER_LIMIT) {
+	if(index >= GRID_SIZE) {
 		index = GRID_SIZE - 1;
+	}
+	return index;
+}
+
+void print_occupancy_grid(double og[][GRID_SIZE], int max_x, int max_y, int robot_x, int robot_y)
+{
+	for(int i = 0; i < max_x; i++)
+	{
+  		std::string row = "";
+		for(int j = 0; j < max_y; j++)
+		{
+			double prob = og[i][j];
+			int percent = int(prob*100);
+			char value = '0' + percent;			
+			row.append("[");
+			if(robot_x == i && robot_y == j) {
+				row.append("X");
+			} else {
+				row+= value;
+			}
+			if(percent < 10) row.append("   ");
+			else if(percent < 100) row.append("  ");
+			else row.append(" ");
+			row.append("]");
+		}
+		std::cout << row << '\n';
 	}
 }
 
@@ -142,21 +166,25 @@ int main(int argc, char **argv)
 	//Initialize Occupancy Grid
 	nav_msgs::OccupancyGrid occupancyGridMessage;
 	double occupancy_grid[GRID_SIZE][GRID_SIZE];
-	double initial_odds = 1/2500;
+	double initial_odds = 1/GRID_SIZE*GRID_SIZE;
 	double initial_log_odds = std::log(initial_odds/ (1 - initial_odds)); 
-	for(int i = 0; i < 50; i++) {
-		for (int j = 0; j < 50; j++) {
+	for(int i = 0; i < GRID_SIZE; i++) {
+		for (int j = 0; j < GRID_SIZE; j++) {
 			occupancy_grid[i][j] = initial_log_odds;
 		}		
 	}
     //Set the loop rate in Hz
-    ros::Rate loop_rate(30);
+    ros::Rate loop_rate(2);
 
     while (ros::ok())
     {
     	loop_rate.sleep(); //Maintain the loop rate
     	ros::spinOnce();   //Check for new messages
 		// iterate through laser scan
+		int x0 = convert_coordinate_to_index(ips_x);
+		int y0 = convert_coordinate_to_index(ips_y);
+		int x1 = 0;
+		int y1 = 0;
 		for (int i = 0; i < scanSize; i++)
 		{
 			double reading = currentScan.ranges[i]; 
@@ -167,14 +195,13 @@ int main(int argc, char **argv)
 				double y = currentScan.ranges[i] * std::sin(thetaScan) + ips_y;
 
 				// convert laser endpoint to grid index				
-				int x1 = convert_coordinate_to_index(x);
-				int y1 = convert_coordinate_to_index(y);
+				x1 = convert_coordinate_to_index(x);
+				y1 = convert_coordinate_to_index(y);
 				// convert current position to grid index				
-				int x0 = convert_coordinate_to_index(ips_x);
-				int y0 = convert_coordinate_to_index(ips_y);
+				
 				
 				// determine indices of OG tiles traversed by laser beam
-				std::vector<int> x_tile_indices;
+				/*std::vector<int> x_tile_indices;
 				std::vector<int> y_tile_indices;
 				bresenham(x0, y0, x1, y1, x_tile_indices, y_tile_indices);
 				
@@ -191,11 +218,15 @@ int main(int argc, char **argv)
 				}
 				// update probability value for laser ray endpoint
 				occupancy_grid[x0][y0] += std::log(occupied/(1-occupied));
+				*/	
 			}
 		}
-
     	//velocity_publisher.publish(vel); // Publish the command velocity
 		map_publisher.publish(occupancyGridMessage);
+		ROS_INFO("robot position [%f, %f] ", ips_x, ips_y);		
+		ROS_INFO("robot grid position [%d, %d] ", x0, y0);
+		ROS_INFO("Updated occupancy grid");
+		print_occupancy_grid(occupancy_grid, GRID_SIZE, GRID_SIZE, x0, y0);
     }
 
     return 0;
