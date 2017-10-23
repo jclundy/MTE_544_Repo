@@ -127,20 +127,18 @@ void print_occupancy_grid(double og[][GRID_SIZE], int max_x, int max_y, int robo
 		for(int j = 0; j < max_y; j++)
 		{
 			double prob = og[i][j];
-			int percent = int(prob*100);
-			char value = '0' + percent;			
-			row.append("[");
+			int val = int(prob);
+			int abs_val = abs(val);
 			if(robot_x == i && robot_y == j) {
-				row.append("X");
+				std::cout << "[ X ]";
 			} else {
-				row+= value;
+				std::cout << '['<< val << " ";
+				if(abs_val < 100) std::cout << " ";
+				if(abs_val < 10) std::cout << " ";
+				std::cout << ']';
 			}
-			if(percent < 10) row.append("   ");
-			else if(percent < 100) row.append("  ");
-			else row.append(" ");
-			row.append("]");
 		}
-		std::cout << row << '\n';
+		std::cout << '\n';
 	}
 }
 
@@ -161,7 +159,7 @@ int main(int argc, char **argv)
 	//Initialize Occupancy Grid
 	nav_msgs::OccupancyGrid occupancy_grid_message;
 	double occupancy_grid[GRID_SIZE][GRID_SIZE];
-	double initial_odds = 1/GRID_SIZE*GRID_SIZE;
+	double initial_odds = 0.5;
 	double initial_log_odds = std::log(initial_odds/ (1 - initial_odds)); 
 	for(int i = 0; i < GRID_SIZE; i++) {
 		for (int j = 0; j < GRID_SIZE; j++) {
@@ -196,7 +194,7 @@ int main(int argc, char **argv)
 				
 				
 				// determine indices of OG tiles traversed by laser beam
-				/*std::vector<int> x_tile_indices;
+				std::vector<int> x_tile_indices;
 				std::vector<int> y_tile_indices;
 				bresenham(x0, y0, x1, y1, x_tile_indices, y_tile_indices);
 				
@@ -213,7 +211,7 @@ int main(int argc, char **argv)
 				}
 				// update probability value for laser ray endpoint
 				occupancy_grid[x0][y0] += std::log(occupied/(1-occupied));
-				*/	
+					
 			}
 		}
     		//velocity_publisher.publish(vel); // Publish the command velocity
