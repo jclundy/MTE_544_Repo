@@ -28,19 +28,14 @@ const int scanSize = 134;
 
 ros::Publisher pose_publisher;
 ros::Publisher marker_pub;
-double currentScanVector[134];
-sensor_msgs::LaserScan currentScan; 
+double current_scan_vector[134];
+sensor_msgs::LaserScan current_scan; 
 
 double ips_x;
 double ips_y;
 double ips_yaw;
 
 short sgn(int x) { return x >= 0 ? 1 : -1; }
-
-int convertDistanceToGridCoordinates(double reading)
-{
-	return int(reading * SCALE);
-}
 
 //Callback function for the Position topic (SIMULATION)
 void pose_callback(const gazebo_msgs::ModelStates& msg) 
@@ -57,7 +52,7 @@ void pose_callback(const gazebo_msgs::ModelStates& msg)
 
 void scan_callback(const sensor_msgs::LaserScan& scan)
 {
-	currentScan = scan;
+	current_scan = scan;
 	//This function is called when a new LaserScan is receive
 }
 
@@ -164,7 +159,7 @@ int main(int argc, char **argv)
     ros::Publisher map_publisher = n.advertise<nav_msgs::OccupancyGrid>("/map", 1);
 
 	//Initialize Occupancy Grid
-	nav_msgs::OccupancyGrid occupancyGridMessage;
+	nav_msgs::OccupancyGrid occupancy_grid_message;
 	double occupancy_grid[GRID_SIZE][GRID_SIZE];
 	double initial_odds = 1/GRID_SIZE*GRID_SIZE;
 	double initial_log_odds = std::log(initial_odds/ (1 - initial_odds)); 
@@ -187,12 +182,12 @@ int main(int argc, char **argv)
 		int y1 = 0;
 		for (int i = 0; i < scanSize; i++)
 		{
-			double reading = currentScan.ranges[i]; 
+			double reading = current_scan.ranges[i];
 			if(std::isnormal(reading)) {
 				// determine real world coordinates of laser scan endpoint
-				double thetaScan = i*currentScan.angle_increment + currentScan.angle_min + ips_yaw;
-				double x = currentScan.ranges[i] * std::cos(thetaScan) + ips_x;
-				double y = currentScan.ranges[i] * std::sin(thetaScan) + ips_y;
+				double theta = i*current_scan.angle_increment + current_scan.angle_min + ips_yaw;
+				double x = current_scan.ranges[i] * std::cos(theta) + ips_x;
+				double y = current_scan.ranges[i] * std::sin(theta) + ips_y;
 
 				// convert laser endpoint to grid index				
 				x1 = convert_coordinate_to_index(x);
@@ -221,8 +216,8 @@ int main(int argc, char **argv)
 				*/	
 			}
 		}
-    	//velocity_publisher.publish(vel); // Publish the command velocity
-		map_publisher.publish(occupancyGridMessage);
+    		//velocity_publisher.publish(vel); // Publish the command velocity
+		map_publisher.publish(occupancy_grid_message);
 		ROS_INFO("robot position [%f, %f] ", ips_x, ips_y);		
 		ROS_INFO("robot grid position [%d, %d] ", x0, y0);
 		ROS_INFO("Updated occupancy grid");
