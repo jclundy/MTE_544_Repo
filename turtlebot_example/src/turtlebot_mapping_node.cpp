@@ -20,8 +20,9 @@
 #include <sensor_msgs/LaserScan.h>
 #include <math.h>
 
-const double MAP_X = 5; //meters
-const double MAP_Y = 5; //meters
+#define GRID_SIZE 50
+const double MAP_UPPER_LIMIT = 2.5; //meters 
+const double MAP_LOWER_LIMIT = -2.5; //meters
 const double MAP_SIZE = 5;
 const double GRID_RES = 0.1; //meters 
 const double SCALE = MAP_SIZE/GRID_RES;
@@ -113,6 +114,17 @@ void bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::vector<
     }
 }
 
+int convert_coordinate_to_index(double coordinate) 
+{
+	int index = int(coordinate / GRID_RES - MAP_LOWER_LIMIT);
+	if(index < MAP_LOWER_LIMIT) {
+		index = 0;
+	}
+	if(index > MAP_UPPER_LIMIT) {
+		index = GRID_SIZE - 1;
+	}
+}
+
 int main(int argc, char **argv)
 {
 	//Initialize the ROS framework
@@ -127,18 +139,18 @@ int main(int argc, char **argv)
     marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 1, true);
     ros::Publisher map_publisher = n.advertise<nav_msgs::OccupancyGrid>("/map", 1);
 
-	//Occupancy Grid Variable
-	nav_msgs::OccupancyGrid occupancyGrid;
-	
-	/*occupancyGrid.data = new int[50][50];
-	// initialize grid
+	//Initialize Occupancy Grid
+	nav_msgs::OccupancyGrid occupancyGridMessage;
+	double occupancy_grid[GRID_SIZE][GRID_SIZE];
+	double initial_odds = 1/2500;
+	double initial_log_odds = std::log(initial_odds/ (1 - initial_odds)); 
 	for(int i = 0; i < 50; i++) {
-		for (int j = 0; j < 50; j++)
-		occupancyGrid.data[i][j] = 1/2500;		
+		for (int j = 0; j < 50; j++) {
+			occupancy_grid[i][j] = initial_log_odds;
+		}		
 	}
-	*/
-    //Set the loop rate
-    ros::Rate loop_rate(30);    //20Hz update rate
+    //Set the loop rate in Hz
+    ros::Rate loop_rate(30);
 
     while (ros::ok())
     {
@@ -147,13 +159,43 @@ int main(int argc, char **argv)
 		// iterate through laser scan
 		for (int i = 0; i < scanSize; i++)
 		{
-			double thetaScan = i*currentScan.angle_increment + currentScan.angle_min + ips_yaw;
-			double x = currentScan.ranges[i] * std::cos(thetaScan) + ips_x;
-			double y = currentScan.ranges[i] * std::sin(thetaScan) + ips_y;
+			double reading = currentScan.ranges[i]; 
+			if(std::isnormal(reading)) {
+				// determine real world coordinates of laser scan endpoint
+				double thetaScan = i*currentScan.angle_increment + currentScan.angle_min + ips_yaw;
+				double x = currentScan.ranges[i] * std::cos(thetaScan) + ips_x;
+				double y = currentScan.ranges[i] * std::sin(thetaScan) + ips_y;
+
+				// convert laser endpoint to grid index				
+				int x1 = convert_coordinate_to_index(x);
+				int y1 = convert_coordinate_to_index(y);
+				// convert current position to grid index				
+				int x0 = convert_coordinate_to_index(ips_x);
+				int y0 = convert_coordinate_to_index(ips_y);
+				
+				// determine indices of OG tiles traversed by laser beam
+				std::vector<int> x_tile_indices;
+				std::vector<int> y_tile_indices;
+				bresenham(x0, y0, x1, y1, x_tile_indices, y_tile_indices);
+				
+				// update probability values for each tile crossed laser ray
+				double occupied = 0.7;
+				double empty = 0.3;
+				int list_length = x_tile_indices.size();
+				for(int i = 0; i < list_length; i++)
+				{	
+					int x_index = x_tile_indices[i];
+					int y_index = y_tile_indices[i];
+					//
+					occupancy_grid[x_index][y_index] += std::log(empty/(1-empty)) - initial_log_odds;
+				}
+				// update probability value for laser ray endpoint
+				occupancy_grid[x0][y0] += std::log(occupied/(1-occupied));
+			}
 		}
 
     	//velocity_publisher.publish(vel); // Publish the command velocity
-		map_publisher.publish(occupancyGrid);
+		map_publisher.publish(occupancyGridMessage);
     }
 
     return 0;
