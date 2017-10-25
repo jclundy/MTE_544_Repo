@@ -20,16 +20,19 @@
 #include <sensor_msgs/LaserScan.h>
 #include <math.h>
 
-#define GRID_SIZE 20
-const double MAP_UPPER_LIMIT = 2; //meters 
-const double MAP_LOWER_LIMIT = -2; //meters
+#define GRID_SIZE 60
+const double NUMBER_TILES = GRID_SIZE * GRID_SIZE;
+const double MAP_UPPER_LIMIT = 6; //meters
+const double MAP_LOWER_LIMIT = -6; //meters
 const double SCALE = GRID_SIZE / (MAP_UPPER_LIMIT - MAP_LOWER_LIMIT);
 const int scanSize = 134;
+const int downsample_factor = 5;
 
 ros::Publisher pose_publisher;
 ros::Publisher marker_pub;
 double current_scan_vector[134];
-sensor_msgs::LaserScan current_scan; 
+sensor_msgs::LaserScan current_scan;
+geometry_msgs::Pose current_pose;
 
 double ips_x;
 double ips_y;
@@ -47,6 +50,7 @@ void pose_callback(const gazebo_msgs::ModelStates& msg)
     ips_x = msg.pose[i].position.x ;
     ips_y = msg.pose[i].position.y ;
     ips_yaw = tf::getYaw(msg.pose[i].orientation);
+    current_pose = msg.pose[i];
 
 }
 
@@ -157,14 +161,23 @@ int main(int argc, char **argv)
     ros::Publisher map_publisher = n.advertise<nav_msgs::OccupancyGrid>("/map", 1);
 
 	//Initialize Occupancy Grid
-	nav_msgs::OccupancyGrid occupancy_grid_message;
 	double occupancy_grid[GRID_SIZE][GRID_SIZE];
-	double initial_odds = 0.5;
+	nav_msgs::OccupancyGrid occupancy_grid_message;
+	occupancy_grid_message.data.resize(NUMBER_TILES);
+	occupancy_grid_message.info.resolution = 1/SCALE; // 0.2 meters per cell
+	occupancy_grid_message.info.width = GRID_SIZE;
+	occupancy_grid_message.info.height = GRID_SIZE;
+
+	double initial_odds = 0.2;
 	double initial_log_odds = std::log(initial_odds/ (1 - initial_odds)); 
+
 	for(int i = 0; i < GRID_SIZE; i++) {
 		for (int j = 0; j < GRID_SIZE; j++) {
 			occupancy_grid[i][j] = initial_log_odds;
 		}		
+	}
+	for (int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
+		occupancy_grid_message.data[i] = -1;
 	}
     //Set the loop rate in Hz
     ros::Rate loop_rate(2);
@@ -178,7 +191,7 @@ int main(int argc, char **argv)
 		int y0 = convert_coordinate_to_index(ips_y);
 		int x1 = 0;
 		int y1 = 0;
-		for (int i = 0; i < scanSize; i++)
+		for (int i = 0; i < scanSize; i+= downsample_factor)
 		{
 			double reading = current_scan.ranges[i];
 			if(std::isnormal(reading)) {
@@ -210,16 +223,18 @@ int main(int argc, char **argv)
 					occupancy_grid[x_index][y_index] += std::log(empty/(1-empty)) - initial_log_odds;
 				}
 				// update probability value for laser ray endpoint
-				occupancy_grid[x0][y0] += std::log(occupied/(1-occupied));
-					
+				occupancy_grid[x1][y1] += std::log(occupied/(1-occupied));
+				double logodds = occupancy_grid[x1][y1];
+				double exp = std::exp(logodds);
+				occupancy_grid_message.data[x1 + GRID_SIZE * y1] = int8_t(exp/(1+exp)*100);
 			}
 		}
-    		//velocity_publisher.publish(vel); // Publish the command velocity
+
 		map_publisher.publish(occupancy_grid_message);
 		ROS_INFO("robot position [%f, %f] ", ips_x, ips_y);		
 		ROS_INFO("robot grid position [%d, %d] ", x0, y0);
 		ROS_INFO("Updated occupancy grid");
-		print_occupancy_grid(occupancy_grid, GRID_SIZE, GRID_SIZE, x0, y0);
+		//print_occupancy_grid(occupancy_grid, GRID_SIZE, GRID_SIZE, x0, y0);
     }
 
     return 0;
