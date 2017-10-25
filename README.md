@@ -22,3 +22,12 @@ roslaunch lab1 turtlebot_gazebo.launch
 roslaunch lab1 amcl_demo.launch map_file:=/home/YOUR_NAME/catkin_ws/src/MTE_544_Repo/prebuilt_maps/new_map.yaml
 3. Run square driving code square_node
 rosrun lab1 square_node
+
+## How to run Lab 2 mapping node
+1. Run simulator:
+roslaunch lab1 turtlebot_gazebo.launch
+2. Run mapping node:
+rosrun lab2 turtlebot_mapping_node
+3. Run rviz:
+rosrun rviz rviz
+4. In rviz window, add a map; topic for map is '/map'
