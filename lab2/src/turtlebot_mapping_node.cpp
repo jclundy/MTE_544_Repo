@@ -167,7 +167,9 @@ int main(int argc, char **argv)
     //Setup topics to Publish from this node
     marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 1, true);
     ros::Publisher map_publisher = n.advertise<nav_msgs::OccupancyGrid>("/map", 1);
-
+    ros::Publisher velocity_publisher = n.advertise<geometry_msgs::Twist>("/cmd_vel_mux/input/teleop", 1);
+    // Initialize velocity 
+    geometry_msgs::Twist vel;	
 	//Initialize Occupancy Grid
 	double occupancy_grid[GRID_SIZE][GRID_SIZE];
 	nav_msgs::OccupancyGrid occupancy_grid_message;
