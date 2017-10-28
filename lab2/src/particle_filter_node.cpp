@@ -19,6 +19,10 @@ void scan_callback(const sensor_msgs::LaserScan& scan)
 
 }
 
+float * cumsum (float * arr)
+{
+    return arr;
+}
 
 int main(int argc, char **argv)
 {

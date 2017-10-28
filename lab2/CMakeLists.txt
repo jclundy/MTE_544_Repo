@@ -108,6 +108,7 @@ include_directories(
 ## Declare a cpp executable
  add_executable(turtlebot_example_node_lab2 src/turtlebot_example_node_lab2.cpp)
  add_executable(turtlebot_mapping_node src/turtlebot_mapping_node.cpp)
+ add_executable(particle_filter_node src/particle_filter_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -118,6 +119,9 @@ include_directories(
    ${catkin_LIBRARIES}
  )
  target_link_libraries(turtlebot_mapping_node
+   ${catkin_LIBRARIES}
+ )
+ target_link_libraries(particle_filter_node
    ${catkin_LIBRARIES}
  )
 #############
