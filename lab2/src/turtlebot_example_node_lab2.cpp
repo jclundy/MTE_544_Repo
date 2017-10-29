@@ -17,7 +17,13 @@
 #include <gazebo_msgs/ModelStates.h>
 #include <visualization_msgs/Marker.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <std_msgs/String.h>
+#include <sstream>
 
+//point cloud includes
+#include <sensor_msgs/PointCloud.h>
+#include <string>
+#include <random>
 
 ros::Publisher pose_publisher;
 ros::Publisher marker_pub;
@@ -27,6 +33,32 @@ double ips_y;
 double ips_yaw;
 
 short sgn(int x) { return x >= 0 ? 1 : -1; }
+//point cloud function
+void getRandomPointCloud(sensor_msgs::PointCloud& pc,
+                         double centerX,
+                         double centerY,
+                         int& sizeOfCloud) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::normal_distribution<> distX(centerX, 2.);
+  std::normal_distribution<> distY(centerY, 2.);
+
+  for (int i = 0; i < pc.points.size(); i++) {
+    double xValue = distX(gen);
+    double yValue = distY(gen);
+    pc.points[i].x = xValue;
+    pc.points[i].y = yValue;
+    pc.points[i].z =
+        std::exp(-((xValue * xValue) + (yValue * yValue)) / 4.);
+  }
+	sensor_msgs::ChannelFloat32 depth_channel;
+  	depth_channel.name = "distance";
+  	for (int i = 0; i < pc.points.size(); i++) {
+    	depth_channel.values.push_back(pc.points[i].z); // or set to a random value if you like
+  	}
+  	// add channel to point cloud
+  	pc.channels.push_back(depth_channel);
+}
 
 //Callback function for the Position topic (SIMULATION)
 void pose_callback(const gazebo_msgs::ModelStates& msg) 
@@ -37,8 +69,7 @@ void pose_callback(const gazebo_msgs::ModelStates& msg)
 
     ips_x = msg.pose[i].position.x ;
     ips_y = msg.pose[i].position.y ;
-    ips_yaw = tf::getYaw(msg.pose[i].orientation);
-
+    ips_yaw = tf::getYaw(msg.pose[i].orientation);	
 }
 
 //Callback function for the Position topic (LIVE)
@@ -55,7 +86,7 @@ void pose_callback(const geometry_msgs::PoseWithCovarianceStamped& msg)
 //Callback function for the map
 void map_callback(const nav_msgs::OccupancyGrid& msg)
 {
-    //This function is called when a new map is received
+   //This function is called when a new map is received
     
     //you probably want to save the map into a form which is easy to work with
 }
@@ -103,7 +134,9 @@ void bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::vector<
 
 int main(int argc, char **argv)
 {
-	//Initialize the ROS framework
+	
+	int count = 0;
+//Initialize the ROS framework
     ros::init(argc,argv,"main_control");
     ros::NodeHandle n;
 
@@ -117,28 +150,50 @@ int main(int argc, char **argv)
     marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 1, true);
     
     //Variable to publish
-    geometry_msgs::Twist vel;
+    	geometry_msgs::Twist vel;
 	geometry_msgs::PoseStamped pose;
 	visualization_msgs::Marker marker;
 	
+	//point cloud code
+  	int sizeOfCloud = 100000;
+  	sensor_msgs::PointCloud keypoints;
+  	keypoints.points.resize(sizeOfCloud);
+  	getRandomPointCloud(keypoints, 0.5, 0.5, sizeOfCloud);
 
+  	keypoints.header.frame_id = "base_link";
+  	keypoints.header.stamp = ros::Time::now();
+
+  	auto keypoints_publisher =
+      n.advertise<sensor_msgs::PointCloud>("point_cloud", 10);
     //Set the loop rate
-    ros::Rate loop_rate(20);    //20Hz update rate
+    ros::Rate loop_rate(30);    //20Hz update rate
 	
 
     while (ros::ok())
     {
-    	loop_rate.sleep(); //Maintain the loop rate
-    	ros::spinOnce();   //Check for new messages
-
     	//Main loop code goes here:
     	vel.linear.x = 0.1; // set linear speed
     	vel.angular.z = 0.3; // set angular speed
-
-		//Publishers
+	
+	keypoints.header.stamp = ros::Time::now();
+    	keypoints_publisher.publish(keypoints);
+	loop_rate.sleep(); //Maintain the loop rate
+        ros::spinOnce();   //Check for new messages
+	
+//std_msgs::String msg;
+	
+	////Code to print messages onto console
+	//std::stringstream ss;
+	//ss <<pose << count;
+	//msg.data = ss.str();
+	//ROS_INFO("%s", msg.data.c_str());
+	//ss << vel << count;
+	//msg.data = ss.str();
+	//ROS_INFO("%s", msg.data.c_str());	
+	//Publishers
     	velocity_publisher.publish(vel);
-		pose_publisher.publish(pose);
-		marker_pub.publish(marker); 
+	pose_publisher.publish(pose);
+	marker_pub.publish(marker); 
     }
 
     return 0;
