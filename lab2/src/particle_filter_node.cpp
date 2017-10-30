@@ -11,8 +11,7 @@
 #define SIMULATION
 
 #include <ros/ros.h>
-#include <sensor_msgs/LaserScan.h>
-#include <nav_msgs/OccupancyGrid.h>
+#include "nav_msgs/Odometry.h"
 #include <geometry_msgs/Twist.h>
 #include <gazebo_msgs/ModelStates.h>
 #include <tf/transform_datatypes.h>
@@ -29,9 +28,12 @@
 
 ros::Publisher marker_pub;
 
+
 double ips_x;
 double ips_y;
 double ips_yaw;
+double forward_v;
+double omega;
 
 #ifdef SIMULATION
 //Callback function for the Position topic (SIMULATION)
@@ -58,6 +60,13 @@ void pose_callback(const geometry_msgs::PoseWithCovarianceStamped& msg)
     ROS_DEBUG("pose_callback X: %f Y: %f Yaw: %f", X, Y, Yaw);
 }
 #endif
+
+void odomCallback(const nav_msgs::Odometry::ConstPtr& odom)
+{
+    forward_v = odom->twist.twist.linear.x;
+    omega = odom->twist.twist.angular.z;
+    ROS_INFO("odom_callback v: %f omega: %f", forward_v, omega);
+}
 
 void motion_model(float * particle_x, float * particle_y, float * theta, geometry_msgs::Twist vel, float d_t, std::default_random_engine * generator)
 {
