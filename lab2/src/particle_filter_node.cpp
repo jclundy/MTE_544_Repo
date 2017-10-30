@@ -9,6 +9,7 @@
 //
 // //////////////////////////////////////////////////////////
 #define SIMULATION
+#define VERBOSE_DEBUG
 
 #include <ros/ros.h>
 #include "nav_msgs/Odometry.h"
@@ -68,34 +69,34 @@ void odomCallback(const nav_msgs::Odometry::ConstPtr& odom)
     ROS_INFO("odom_callback v: %f omega: %f", forward_v, omega);
 }
 
-void motion_model(float * particle_x, float * particle_y, float * theta, geometry_msgs::Twist vel, float d_t, std::default_random_engine * generator)
+void motion_model(double * particle_x, double * particle_y, double * theta, double d_t, std::default_random_engine * generator)
 {
-    float prev_x = * particle_x;
-    float prev_y = * particle_y;
-    float prev_theta = * theta;
+    double prev_x = * particle_x;
+    double prev_y = * particle_y;
+    double prev_theta = * theta;
 
 
     std::normal_distribution<double> distribution(0,0.5);
-    float noise_x = distribution(*generator);
-    float noise_y = distribution(*generator);
+    double noise_x = distribution(*generator);
+    double noise_y = distribution(*generator);
 
-    ROS_INFO("noise_x = [%f]    noise_y = [%f]", noise_x, noise_y);
+   // ROS_INFO("noise_x = [%f]    noise_y = [%f]", noise_x, noise_y);
 
-    float v = vel.linear.x;
+    double v = forward_v;
     *particle_x = prev_x + v * cos(prev_theta) * d_t + noise_x; 
-    *particle_y = prev_y + v* sin(prev_theta) * vel.linear.x * d_t + noise_y;
-    *theta = prev_theta + vel.angular.z;
+    *particle_y = prev_y + v* sin(prev_theta) * d_t + noise_y;
+    *theta = prev_theta + omega;
 }
 
-float normal_pdf(float x, float m, float s)
+double normal_pdf(double x, double m, double s)
 {
-    static const float inv_sqrt_2pi = 0.3989422804014327;
-    float a = (x - m) / s;
+    static const double inv_sqrt_2pi = 0.3989422804014327;
+    double a = (x - m) / s;
 
     return inv_sqrt_2pi / s * std::exp(-0.5f * a * a);
 }
 
-float * cumsum (float * arr)
+double * cumsum (double * arr)
 {
     return arr;
 }
@@ -117,17 +118,19 @@ int main(int argc, char **argv)
 	ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 10);
         
     //Set the loop rate
-    ros::Rate loop_rate(3);    //3Hz update rate
+    float freq = 10;
+    float d_t = 1/freq;
+    ros::Rate loop_rate(freq);    //3Hz update rate
 
-    int M = 8; //Number of particles/samples
+    int M = 100; //Number of particles/samples
     float Q = 1; //Standard deviation of degraded IPS measurement
-    std::vector<float> particle_x (M);
-    std::vector<float> particle_y (M);
-    std::vector<float> particle_x_new (M);
-    std::vector<float> particle_y_new (M);
+    std::vector<double> particle_x (M);
+    std::vector<double> particle_y (M);
+    std::vector<double> particle_x_new (M);
+    std::vector<double> particle_y_new (M);
 
-    std::vector<float> particle_weight (M);
-    std::vector<float> cumsum (M);
+    std::vector<double> particle_weight (M);
+    std::vector<double> cumsum (M);
 
     /* 
     //random device and engine initialization
@@ -144,35 +147,31 @@ int main(int argc, char **argv)
         ros::spinOnce();   //Check for new messages
     
         //Main loop code:
-	
-	// Marker initialization
-	visualization_msgs::Marker points;
-    	points.header.frame_id = "/map";
-    	points.header.stamp = ros::Time::now();
-    	points.ns = "particle_filter_node";
-    	points.action = visualization_msgs::Marker::ADD;
-    	points.pose.orientation.w = 1.0;
-	points.id = 0;
-	//points formatting
-	points.type = visualization_msgs::Marker::POINTS;
-	points.scale.x = 0.2;
-    	points.scale.y = 0.2;
-	points.color.g = 1.0f;
-    	points.color.a = 1.0;
+    
+        // Marker initialization
+        visualization_msgs::Marker points;
+        points.header.frame_id = "/map";
+        points.header.stamp = ros::Time::now();
+        points.ns = "particle_filter_node";
+        points.action = visualization_msgs::Marker::ADD;
+        points.pose.orientation.w = 1.0;
+        points.id = 0;
+        //points formatting
+        points.type = visualization_msgs::Marker::POINTS;
+        points.scale.x = 0.2;
+        points.scale.y = 0.2;
+        points.color.g = 1.0f;
+        points.color.a = 1.0;
 
         //apply motion model to each sample
         int i;
         for (i = 0; i < M; i++)
         {
-            float theta = 0; //for testing
-            geometry_msgs::Twist vel; //for testing
-            vel.linear.x = 0.1; //for testing
-            vel.angular.z = 0.3; //for testing
-            motion_model (&particle_x[i], &particle_y[i], &theta, vel, 0.01, &generator);
+            motion_model (&particle_x[i], &particle_y[i], &ips_yaw, d_t, &generator);
         }
 
-        float y_x = ips_x + ips_distribution(generator);
-        float y_y = ips_y + ips_distribution(generator);
+        double y_x = ips_x + ips_distribution(generator);
+        double y_y = ips_y + ips_distribution(generator);
 
         //apply measurement model to determine particle weights
         for (i = 0; i < M; i++)
@@ -180,23 +179,23 @@ int main(int argc, char **argv)
             particle_weight[i] = normal_pdf(y_x, particle_x[i], Q)
                                     * normal_pdf(y_y, particle_y[i], Q); //TODO:measurment model
 
-            ROS_INFO("Weight[%i] = [%f]", i, particle_weight[i]);
+            //ROS_INFO("Weight[%i] = [%f]", i, particle_weight[i]);
 
             if (i == 0)
                 cumsum[0] = particle_weight[i];
             else
                 cumsum [i] = cumsum [i-1] + particle_weight[i];
 
-            ROS_INFO("cumsum[%i] = [%f]", i, cumsum[i]);
+            //ROS_INFO("cumsum[%i] = [%f]", i, cumsum[i]);
         }
 
         //create a new sample set based on sample weights
         //C++ 11 not compatible!! std::uniform_real_distribution<> uniform_dist(0, cumsum[M-1]);
         for (i = 0; i < M; i++)
         {
-            float random_num = rand() * cumsum [M-1] / RAND_MAX;
+            double random_num = rand() * cumsum [M-1] / RAND_MAX;
             //TODO: replace with binary search
-            ROS_INFO("RANDOM NUM = [%f]", random_num);
+            //ROS_INFO("RANDOM NUM = [%f]", random_num);
             int j = 0;
             while (random_num > cumsum[j])
             {
@@ -207,12 +206,12 @@ int main(int argc, char **argv)
             particle_x_new[i] = particle_x[j];
             particle_y_new[i] = particle_y[j];
         }
-
+/*
         for (i = 0; i < M; i++)
         {
             ROS_INFO("NEW SAMPLE SET <%i> [%f][%f]", i, particle_x_new[i], particle_y_new[i]);
         }
-
+*/
         //TODO: check if this is O(n) or O(1), possibly optimize
         particle_x = particle_x_new;
         particle_y = particle_y_new;
