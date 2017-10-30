@@ -23,6 +23,12 @@
 #include <cstdlib>
 #include <ctime>
 
+//visualization includes
+#include <cmath>
+#include <visualization_msgs/Marker.h>
+
+ros::Publisher marker_pub;
+
 double ips_x;
 double ips_y;
 double ips_yaw;
@@ -98,6 +104,8 @@ int main(int argc, char **argv)
     ros::Subscriber pose_sub = n.subscribe("/geometry_msgs/PoseWithCovarianceStamped", 1, pose_callback);
 #endif
 
+	//Initialize visualization publisher
+	ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 10);
         
     //Set the loop rate
     ros::Rate loop_rate(3);    //3Hz update rate
@@ -127,6 +135,21 @@ int main(int argc, char **argv)
         ros::spinOnce();   //Check for new messages
     
         //Main loop code:
+	
+	// Marker initialization
+	visualization_msgs::Marker points;
+    	points.header.frame_id = "/map";
+    	points.header.stamp = ros::Time::now();
+    	points.ns = "particle_filter_node";
+    	points.action = visualization_msgs::Marker::ADD;
+    	points.pose.orientation.w = 1.0;
+	points.id = 0;
+	//points formatting
+	points.type = visualization_msgs::Marker::POINTS;
+	points.scale.x = 0.2;
+    	points.scale.y = 0.2;
+	points.color.g = 1.0f;
+    	points.color.a = 1.0;
 
         //apply motion model to each sample
         int i;
@@ -185,7 +208,19 @@ int main(int argc, char **argv)
         particle_x = particle_x_new;
         particle_y = particle_y_new;
 
-        //map_publisher.publish(occupancyGrid); // Publish the command velocity
+        //publish points to rviz
+	for (uint32_t i = 0; i < 100; ++i)
+	    {
+	    
+	      geometry_msgs::Point p;
+	      p.x = particle_x[i];
+	      p.y = particle_y[i];
+	      p.z = 0;
+
+	      points.points.push_back(p);
+
+	    }
+	marker_pub.publish(points);
     }
 
     return 0;
