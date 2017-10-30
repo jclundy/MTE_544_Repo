@@ -19,6 +19,7 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/String.h>
 #include <sstream>
+#include <cmath>
 
 //point cloud includes
 #include <sensor_msgs/PointCloud.h>
@@ -33,32 +34,6 @@ double ips_y;
 double ips_yaw;
 
 short sgn(int x) { return x >= 0 ? 1 : -1; }
-//point cloud function
-void getRandomPointCloud(sensor_msgs::PointCloud& pc,
-                         double centerX,
-                         double centerY,
-                         int& sizeOfCloud) {
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::normal_distribution<> distX(centerX, 2.);
-  std::normal_distribution<> distY(centerY, 2.);
-
-  for (int i = 0; i < pc.points.size(); i++) {
-    double xValue = distX(gen);
-    double yValue = distY(gen);
-    pc.points[i].x = xValue;
-    pc.points[i].y = yValue;
-    pc.points[i].z =
-        std::exp(-((xValue * xValue) + (yValue * yValue)) / 4.);
-  }
-	sensor_msgs::ChannelFloat32 depth_channel;
-  	depth_channel.name = "distance";
-  	for (int i = 0; i < pc.points.size(); i++) {
-    	depth_channel.values.push_back(pc.points[i].z); // or set to a random value if you like
-  	}
-  	// add channel to point cloud
-  	pc.channels.push_back(depth_channel);
-}
 
 //Callback function for the Position topic (SIMULATION)
 void pose_callback(const gazebo_msgs::ModelStates& msg) 
@@ -83,66 +58,16 @@ void pose_callback(const geometry_msgs::PoseWithCovarianceStamped& msg)
 	ROS_DEBUG("pose_callback X: %f Y: %f Yaw: %f", X, Y, Yaw);
 }*/
 
-//Callback function for the map
-void map_callback(const nav_msgs::OccupancyGrid& msg)
-{
-   //This function is called when a new map is received
-    
-    //you probably want to save the map into a form which is easy to work with
-}
-
-//Bresenham line algorithm (pass empty vectors)
-// Usage: (x0, y0) is the first point and (x1, y1) is the second point. The calculated
-//        points (x, y) are stored in the x and y vector. x and y should be empty 
-//	  vectors of integers and shold be defined where this function is called from.
-void bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::vector<int>& y) {
-
-    int dx = abs(x1 - x0);
-    int dy = abs(y1 - y0);
-    int dx2 = x1 - x0;
-    int dy2 = y1 - y0;
-    
-    const bool s = abs(dy) > abs(dx);
-
-    if (s) {
-        int dx2 = dx;
-        dx = dy;
-        dy = dx2;
-    }
-
-    int inc1 = 2 * dy;
-    int d = inc1 - dx;
-    int inc2 = d - dx;
-
-    x.push_back(x0);
-    y.push_back(y0);
-
-    while (x0 != x1 || y0 != y1) {
-        if (s) y0+=sgn(dy2); else x0+=sgn(dx2);
-        if (d < 0) d += inc1;
-        else {
-            d += inc2;
-            if (s) x0+=sgn(dx2); else y0+=sgn(dy2);
-        }
-
-        //Add point to vector
-        x.push_back(x0);
-        y.push_back(y0);
-    }
-}
-
-
 int main(int argc, char **argv)
 {
-	
-	int count = 0;
-//Initialize the ROS framework
-    ros::init(argc,argv,"main_control");
-    ros::NodeHandle n;
+	ros::init(argc, argv, "points_and_lines");
+	ros::NodeHandle n;
+	ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 10);
+	ros::Rate r(30);
+	float f = 0.0;
 
     //Subscribe to the desired topics and assign callbacks
     ros::Subscriber pose_sub = n.subscribe("/gazebo/model_states", 1, pose_callback);
-    ros::Subscriber map_sub = n.subscribe("/map", 1, map_callback);
 
     //Setup topics to Publish from this node
     ros::Publisher velocity_publisher = n.advertise<geometry_msgs::Twist>("/cmd_vel_mux/input/navi", 1);
@@ -154,47 +79,61 @@ int main(int argc, char **argv)
 	geometry_msgs::PoseStamped pose;
 	visualization_msgs::Marker marker;
 	
-	//point cloud code
-  	int sizeOfCloud = 100000;
-  	sensor_msgs::PointCloud keypoints;
-  	keypoints.points.resize(sizeOfCloud);
-  	getRandomPointCloud(keypoints, 0.5, 0.5, sizeOfCloud);
-
-  	keypoints.header.frame_id = "base_link";
-  	keypoints.header.stamp = ros::Time::now();
-
-  	auto keypoints_publisher =
-      n.advertise<sensor_msgs::PointCloud>("point_cloud", 10);
-    //Set the loop rate
-    ros::Rate loop_rate(30);    //20Hz update rate
-	
 
     while (ros::ok())
     {
-    	//Main loop code goes here:
-    	vel.linear.x = 0.1; // set linear speed
-    	vel.angular.z = 0.3; // set angular speed
-	
-	keypoints.header.stamp = ros::Time::now();
-    	keypoints_publisher.publish(keypoints);
-	loop_rate.sleep(); //Maintain the loop rate
-        ros::spinOnce();   //Check for new messages
-	
-//std_msgs::String msg;
-	
-	////Code to print messages onto console
-	//std::stringstream ss;
-	//ss <<pose << count;
-	//msg.data = ss.str();
-	//ROS_INFO("%s", msg.data.c_str());
-	//ss << vel << count;
-	//msg.data = ss.str();
-	//ROS_INFO("%s", msg.data.c_str());	
-	//Publishers
-    	velocity_publisher.publish(vel);
-	pose_publisher.publish(pose);
-	marker_pub.publish(marker); 
-    }
+// %Tag(MARKER_INIT)%
+    visualization_msgs::Marker points;
+    points.header.frame_id = "/map";
+    points.header.stamp = ros::Time::now();
+    points.ns = "points_and_lines";
+    points.action = visualization_msgs::Marker::ADD;
+    points.pose.orientation.w = 1.0;
+// %EndTag(MARKER_INIT)%
 
-    return 0;
-}
+// %Tag(ID)%
+    points.id = 0;
+// %EndTag(ID)%
+
+// %Tag(TYPE)%
+    points.type = visualization_msgs::Marker::POINTS;
+// %EndTag(TYPE)%
+
+// %Tag(SCALE)%
+    // POINTS markers use x and y scale for width/height respectively
+    points.scale.x = 0.2;
+    points.scale.y = 0.2;
+
+// %EndTag(SCALE)%
+
+// %Tag(COLOR)%
+    // Points are green
+    points.color.g = 1.0f;
+    points.color.a = 1.0;
+// %EndTag(COLOR)%
+
+// %Tag(HELIX)%
+    // Create the vertices for the points and lines
+    for (uint32_t i = 0; i < 100; ++i)
+    {
+      float y = 5 * sin(f + i / 100.0f * 2 * M_PI);
+      float z = 5 * cos(f + i / 100.0f * 2 * M_PI);
+
+      geometry_msgs::Point p;
+      p.x = (int32_t)i - 50;
+      p.y = y;
+      p.z = z;
+
+      points.points.push_back(p);
+
+    }
+// %EndTag(HELIX)%
+
+    marker_pub.publish(points);
+
+    r.sleep();
+
+    f += 0.04;
+  }
+}	
+    
