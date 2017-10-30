@@ -24,6 +24,8 @@ roslaunch lab1 amcl_demo.launch map_file:=/home/YOUR_NAME/catkin_ws/src/MTE_544_
 rosrun lab1 square_node
 
 ## How to run Lab 2 mapping node
+0. checkout mapping branch:
+- git checkout mapping
 1. Run simulator:
 roslaunch lab1 turtlebot_gazebo.launch
 2. Run mapping node:

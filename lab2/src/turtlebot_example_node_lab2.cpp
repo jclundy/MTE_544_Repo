@@ -21,11 +21,6 @@
 #include <sstream>
 #include <cmath>
 
-//point cloud includes
-#include <sensor_msgs/PointCloud.h>
-#include <string>
-#include <random>
-
 ros::Publisher pose_publisher;
 ros::Publisher marker_pub;
 
