@@ -7,7 +7,6 @@ project(lab1)
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   roscpp
-  rospy
   sensor_msgs
   std_msgs
   tf
@@ -85,7 +84,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES turtlebot_example
-#  CATKIN_DEPENDS geometry_msgs roscpp rospy sensor_msgs std_msgs tf
+  CATKIN_DEPENDS geometry_msgs roscpp sensor_msgs std_msgs tf
 #  DEPENDS system_lib
 )
 
@@ -107,7 +106,7 @@ include_directories(
 
 ## Declare a cpp executable
  add_executable(square_node src/square_node.cpp)
- add_executable(pid_node src/pid_node.cpp)
+ add_executable(pid_node src/pid_square.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
