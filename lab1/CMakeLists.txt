@@ -107,6 +107,7 @@ include_directories(
 
 ## Declare a cpp executable
  add_executable(square_node src/square_node.cpp)
+ add_executable(pid_node src/pid_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -114,6 +115,10 @@ include_directories(
 
 ## Specify libraries to link a library or executable target against
  target_link_libraries(square_node
+   ${catkin_LIBRARIES}
+ )
+
+ target_link_libraries(pid_node
    ${catkin_LIBRARIES}
  )
 #############
