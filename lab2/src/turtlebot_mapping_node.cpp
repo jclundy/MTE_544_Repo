@@ -2,18 +2,19 @@
 //
 // turtlebot_example.cpp
 // This file contains example code for use with ME 597 lab 2
-// It outlines the basic setup of a ros node and the various 
+// It outlines the basic setup of a ros node and the various
 // inputs and outputs needed for this lab
-// 
-// Author: James Servos 
+//
+// Author: James Servos
 // Edited: Nima Mohajerin
 //
 // //////////////////////////////////////////////////////////
 
 #include <ros/ros.h>
-#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/Twist.h>
 #include <tf/transform_datatypes.h>
+#include <tf/transform_broadcaster.h>
 #include <gazebo_msgs/ModelStates.h>
 #include <visualization_msgs/Marker.h>
 #include <nav_msgs/OccupancyGrid.h>
@@ -23,10 +24,10 @@
 #define DEBUG_INFO
 #undef DEBUG_INFO
 
-#define GRID_SIZE 20
+#define GRID_SIZE 50
 const double NUMBER_TILES = GRID_SIZE * GRID_SIZE;
-const double MAP_UPPER_LIMIT = 6; //meters
-const double MAP_LOWER_LIMIT = -6; //meters
+const double MAP_UPPER_LIMIT = 7; //meters
+const double MAP_LOWER_LIMIT = -7; //meters
 const double SCALE = GRID_SIZE / (MAP_UPPER_LIMIT - MAP_LOWER_LIMIT);
 const int scanSize = 134;
 const int downsample_factor = 5;
@@ -44,7 +45,8 @@ double ips_yaw;
 short sgn(int x) { return x >= 0 ? 1 : -1; }
 
 //Callback function for the Position topic (SIMULATION)
-void pose_callback(const gazebo_msgs::ModelStates& msg) 
+/*
+void pose_callback(const gazebo_msgs::ModelStates& msg)
 {
 
     int i;
@@ -55,7 +57,7 @@ void pose_callback(const gazebo_msgs::ModelStates& msg)
     ips_yaw = tf::getYaw(msg.pose[i].orientation);
     current_pose = msg.pose[i];
 
-}
+}*/
 
 void scan_callback(const sensor_msgs::LaserScan& scan)
 {
@@ -64,19 +66,27 @@ void scan_callback(const sensor_msgs::LaserScan& scan)
 }
 
 //Callback function for the Position topic (LIVE)
-/*
+
 void pose_callback(const geometry_msgs::PoseWithCovarianceStamped& msg)
 {
 
-	ips_x X = msg.pose.pose.position.x; // Robot X psotition
-	ips_y Y = msg.pose.pose.position.y; // Robot Y psotition
+	ips_x = msg.pose.pose.position.x; // Robot X psotition
+	ips_y = msg.pose.pose.position.y; // Robot Y psotition
 	ips_yaw = tf::getYaw(msg.pose.pose.orientation); // Robot Yaw
-	ROS_DEBUG("pose_callback X: %f Y: %f Yaw: %f", X, Y, Yaw);
-}*/
+
+    // Set origin for map to 0,0
+	static tf::TransformBroadcaster br;
+	tf::Transform transform;
+	transform.setOrigin( tf::Vector3(ips_x, ips_y, 0.0) );
+	tf::Quaternion q;
+	q.setRPY(0, 0, ips_yaw);
+	transform.setRotation(q);
+	br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "base_link"));
+}
 
 //Bresenham line algorithm (pass empty vectors)
 // Usage: (x0, y0) is the first point and (x1, y1) is the second point. The calculated
-//        points (x, y) are stored in the x and y vector. x and y should be empty 
+//        points (x, y) are stored in the x and y vector. x and y should be empty
 //	  vectors of integers and shold be defined where this function is called from.
 void bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::vector<int>& y) {
 
@@ -84,7 +94,7 @@ void bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::vector<
     int dy = abs(y1 - y0);
     int dx2 = x1 - x0;
     int dy2 = y1 - y0;
-    
+
     const bool s = abs(dy) > abs(dx);
 
     if (s) {
@@ -114,7 +124,7 @@ void bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::vector<
     }
 }
 
-int convert_coordinate_to_index(double coordinate) 
+int convert_coordinate_to_index(double coordinate)
 {
 	int index = int((coordinate - MAP_LOWER_LIMIT)*SCALE);
 	if(index < 0) {
@@ -156,20 +166,22 @@ int8_t convert_logit_to_prob(double logodds)
 
 int main(int argc, char **argv)
 {
+	int count = 0;
+
 	//Initialize the ROS framework
     ros::init(argc,argv,"main_control");
     ros::NodeHandle n;
 
     //Subscribe to the desired topics and assign callbacks
-    ros::Subscriber pose_sub = n.subscribe("/gazebo/model_states", 1, pose_callback);
+    ros::Subscriber pose_sub = n.subscribe("/indoor_pos", 1, pose_callback);
 	ros::Subscriber scan_sub = n.subscribe("/scan", 1, scan_callback);
 
     //Setup topics to Publish from this node
     marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 1, true);
     ros::Publisher map_publisher = n.advertise<nav_msgs::OccupancyGrid>("/map", 1);
     ros::Publisher velocity_publisher = n.advertise<geometry_msgs::Twist>("/cmd_vel_mux/input/teleop", 1);
-    // Initialize velocity 
-    geometry_msgs::Twist vel;	
+    // Initialize velocity
+    geometry_msgs::Twist vel;
 	//Initialize Occupancy Grid
 	double occupancy_grid[GRID_SIZE][GRID_SIZE];
 	nav_msgs::OccupancyGrid occupancy_grid_message;
@@ -177,14 +189,16 @@ int main(int argc, char **argv)
 	occupancy_grid_message.info.resolution = 1/SCALE; // 0.2 meters per cell
 	occupancy_grid_message.info.width = GRID_SIZE;
 	occupancy_grid_message.info.height = GRID_SIZE;
+	occupancy_grid_message.info.origin.position.x = MAP_LOWER_LIMIT;
+	occupancy_grid_message.info.origin.position.y = MAP_LOWER_LIMIT;
 
 	double initial_odds = 0.2;
-	double initial_log_odds = std::log(initial_odds/ (1 - initial_odds)); 
+	double initial_log_odds = std::log(initial_odds/ (1 - initial_odds));
 
 	for(int i = 0; i < GRID_SIZE; i++) {
 		for (int j = 0; j < GRID_SIZE; j++) {
 			occupancy_grid[i][j] = initial_log_odds;
-		}		
+		}
 	}
 	for (int i = 0; i < NUMBER_TILES; i++) {
 		occupancy_grid_message.data.push_back(-1);
@@ -199,6 +213,10 @@ int main(int argc, char **argv)
 		// iterate through laser scan
 		int x0 = convert_coordinate_to_index(ips_x);
 		int y0 = convert_coordinate_to_index(ips_y);
+		if(count < 3) {
+			count++;
+			continue;
+		}
 		int x1 = 0;
 		int y1 = 0;
 		for (int i = 0; i < scanSize; i+= downsample_factor)
@@ -210,22 +228,24 @@ int main(int argc, char **argv)
 				double x = current_scan.ranges[i] * std::cos(theta) + ips_x;
 				double y = current_scan.ranges[i] * std::sin(theta) + ips_y;
 
-				// convert laser endpoint to grid index				
+				// convert laser endpoint to grid index
+				if(abs(x) > MAP_UPPER_LIMIT || abs(y) > MAP_UPPER_LIMIT)
+					continue;
 				x1 = convert_coordinate_to_index(x);
 				y1 = convert_coordinate_to_index(y);
-				// convert current position to grid index				
-				
+				// convert current position to grid index
+
 				// determine indices of OG tiles traversed by laser beam
 				std::vector<int> x_tile_indices;
 				std::vector<int> y_tile_indices;
 				bresenham(x0, y0, x1, y1, x_tile_indices, y_tile_indices);
-				
+
 				// update probability values for each tile crossed laser ray
 				double occupied = 0.9;
 				double empty = 0.1;
 				int list_length = x_tile_indices.size();
 				for(int i = 0; i < list_length; i++)
-				{	
+				{
 					int x_index = x_tile_indices[i];
 					int y_index = y_tile_indices[i];
 					occupancy_grid[x_index][y_index] += std::log(empty/(1-empty)) - initial_log_odds;
@@ -239,7 +259,7 @@ int main(int argc, char **argv)
 		}
 		//update map
 		map_publisher.publish(occupancy_grid_message);
-		ROS_INFO("robot position [%f, %f] ", ips_x, ips_y);		
+		ROS_INFO("robot position [%f, %f] ", ips_x, ips_y);
 		ROS_INFO("robot grid position [%d, %d] ", x0, y0);
 		ROS_INFO("Updated occupancy grid");
 		#ifdef DEBUG_INFO
