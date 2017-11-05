@@ -2,10 +2,10 @@
 //
 // turtlebot_example.cpp
 // This file contains example code for use with ME 597 lab 1
-// It outlines the basic setup of a ros node and the various 
+// It outlines the basic setup of a ros node and the various
 // inputs and outputs.
-// 
-// Author: James Servos 
+//
+// Author: James Servos
 //
 // //////////////////////////////////////////////////////////
 #define SIMULATION
@@ -39,7 +39,7 @@ float motion_model_std = 0.05;
 
 #ifdef SIMULATION
 //Callback function for the Position topic (SIMULATION)
-void pose_callback(const gazebo_msgs::ModelStates& msg) 
+void pose_callback(const gazebo_msgs::ModelStates& msg)
 {
 
     int i;
@@ -84,7 +84,7 @@ void motion_model(double * particle_x, double * particle_y, double * theta, doub
    // ROS_INFO("noise_x = [%f]    noise_y = [%f]", noise_x, noise_y);
 
     double v = forward_v;
-    *particle_x = prev_x + v * cos(prev_theta) * d_t + noise_x; 
+    *particle_x = prev_x + v * cos(prev_theta) * d_t + noise_x;
     *particle_y = prev_y + v * sin(prev_theta) * d_t + noise_y;
     *theta = prev_theta + omega;
 }
@@ -112,13 +112,13 @@ int main(int argc, char **argv)
 #ifdef SIMULATION
     ros::Subscriber pose_sub = n.subscribe("/gazebo/model_states", 1, pose_callback);
 #else
-    ros::Subscriber pose_sub = n.subscribe("/geometry_msgs/PoseWithCovarianceStamped", 1, pose_callback);
+    ros::Subscriber pose_sub = n.subscribe("/indoor_pos", 1, pose_callback); ///geometry_msgs/PoseWithCovarianceStamped
 #endif
     ros::Subscriber odom_sub = n.subscribe("/odom", 1, odom_callback);
 
 	//Initialize visualization publisher
 	ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 10);
-        
+
     //Set the loop rate
     float freq = 10;
     float d_t = 1/freq;
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
     std::vector<double> particle_weight (M);
     std::vector<double> cumsum (M);
 
-    /* 
+    /*
     //random device and engine initialization
     std::random_device rd;
     std::mt19937 e2(rd());
@@ -151,12 +151,12 @@ int main(int argc, char **argv)
         particle_y[i] = ips_y;
     }
     while (ros::ok())
-    { 
+    {
         loop_rate.sleep(); //Maintain the loop rate
         ros::spinOnce();   //Check for new messages
-    
+
         //Main loop code:
-    
+
         // Marker initialization
         visualization_msgs::Marker points;
         points.header.frame_id = "/map";
@@ -231,7 +231,7 @@ int main(int argc, char **argv)
         //publish points to rviz
 	    for (uint32_t i = 0; i < M; ++i)
 	    {
-	    
+
 	      geometry_msgs::Point p;
 	      p.x = particle_x[i];
 	      p.y = particle_y[i];
