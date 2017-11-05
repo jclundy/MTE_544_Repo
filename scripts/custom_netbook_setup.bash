@@ -11,7 +11,7 @@ export ROS_MASTER_URI=http://$(hostname -I):11311
 
 # Don't lock when lid closes
 LID_SWITCH="$(cat /etc/systemd/logind.conf | grep 'HandleLidSwitch=ignore')"
-if [ -n "$LID_SWITCH" ]; then
+if [ -z "$LID_SWITCH" ]; then
     sudo echo "HandleLidSwitch=ignore" > /etc/systemd/logind.conf
 fi
 
