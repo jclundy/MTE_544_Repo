@@ -24,7 +24,10 @@
 #define DEBUG_INFO
 #undef DEBUG_INFO
 
-#define GRID_SIZE 50
+#define SIM
+//#undef SIM
+
+#define GRID_SIZE 100
 const double NUMBER_TILES = GRID_SIZE * GRID_SIZE;
 const double MAP_UPPER_LIMIT = 7; //meters
 const double MAP_LOWER_LIMIT = -7; //meters
@@ -44,8 +47,8 @@ double ips_yaw;
 
 short sgn(int x) { return x >= 0 ? 1 : -1; }
 
+#ifdef SIM
 //Callback function for the Position topic (SIMULATION)
-/*
 void pose_callback(const gazebo_msgs::ModelStates& msg)
 {
 
@@ -57,16 +60,10 @@ void pose_callback(const gazebo_msgs::ModelStates& msg)
     ips_yaw = tf::getYaw(msg.pose[i].orientation);
     current_pose = msg.pose[i];
 
-}*/
-
-void scan_callback(const sensor_msgs::LaserScan& scan)
-{
-	current_scan = scan;
-	//This function is called when a new LaserScan is receive
 }
 
+#else
 //Callback function for the Position topic (LIVE)
-
 void pose_callback(const geometry_msgs::PoseWithCovarianceStamped& msg)
 {
 
@@ -83,6 +80,14 @@ void pose_callback(const geometry_msgs::PoseWithCovarianceStamped& msg)
 	transform.setRotation(q);
 	br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "base_link"));
 }
+#endif
+
+void scan_callback(const sensor_msgs::LaserScan& scan)
+{
+	current_scan = scan;
+	//This function is called when a new LaserScan is receive
+}
+
 
 //Bresenham line algorithm (pass empty vectors)
 // Usage: (x0, y0) is the first point and (x1, y1) is the second point. The calculated
@@ -173,8 +178,12 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
 
     //Subscribe to the desired topics and assign callbacks
+#ifdef SIM
+    ros::Subscriber pose_sub = n.subscribe("/gazebo/model_states", 1, pose_callback);
+#else
     ros::Subscriber pose_sub = n.subscribe("/indoor_pos", 1, pose_callback);
-	ros::Subscriber scan_sub = n.subscribe("/scan", 1, scan_callback);
+#endif
+    ros::Subscriber scan_sub = n.subscribe("/scan", 1, scan_callback);
 
     //Setup topics to Publish from this node
     marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 1, true);
@@ -204,7 +213,7 @@ int main(int argc, char **argv)
 		occupancy_grid_message.data.push_back(-1);
 	}
     //Set the loop rate in Hz
-    ros::Rate loop_rate(3);
+    ros::Rate loop_rate(20);
 
     while (ros::ok())
     {
