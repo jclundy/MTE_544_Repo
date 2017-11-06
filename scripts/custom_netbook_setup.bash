@@ -4,7 +4,7 @@
 
 # Setup ROS environment
 cd ~/catkin_ws
-source /opt/ros/kinect/setup.bash
+source /opt/ros/kinetic/setup.bash
 source ~/catkin_ws/devel/setup.bash
 export TURTLEBOT_3D_SENSOR=kinect
 export ROS_MASTER_URI="http://$(hostname -I):11311"
@@ -20,6 +20,7 @@ sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.ta
 
 # Spawn two terminals each running minimal build and kinect sensor code on netbook
 xterm -hold -e "cd ~/catkin_ws; source devel/setup.bash; roslaunch turtlebot_bringup minimal.launch" &
+sleep 15s
 xterm -hold -e "cd ~/catkin_ws; source devel/setup.bash; roslaunch turtlebot_bringup 3dsensor.launch" &
 
 #Echo static IP for connection of other laptops
