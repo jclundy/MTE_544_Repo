@@ -25,9 +25,9 @@
 #undef DEBUG_INFO
 
 #define SIM
-//#undef SIM
+#undef SIM
 
-#define GRID_SIZE 100
+#define GRID_SIZE 20
 const double NUMBER_TILES = GRID_SIZE * GRID_SIZE;
 const double MAP_UPPER_LIMIT = 7; //meters
 const double MAP_LOWER_LIMIT = -7; //meters
@@ -213,7 +213,7 @@ int main(int argc, char **argv)
 		occupancy_grid_message.data.push_back(-1);
 	}
     //Set the loop rate in Hz
-    ros::Rate loop_rate(20);
+    ros::Rate loop_rate(3);
 
     while (ros::ok())
     {

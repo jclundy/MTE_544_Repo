@@ -2,10 +2,10 @@
 //
 // turtlebot_example.cpp
 // This file contains example code for use with ME 597 lab 1
-// It outlines the basic setup of a ros node and the various 
+// It outlines the basic setup of a ros node and the various
 // inputs and outputs.
-// 
-// Author: James Servos 
+//
+// Author: James Servos
 //
 // //////////////////////////////////////////////////////////
 
@@ -21,7 +21,7 @@ double Yaw;
 const double squareLength = 1;
 const double squareAngle = 1.57; // pi/2 radians
 
-//Callback function for the Position topic 
+//Callback function for the Position topic
 //void pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg)
 //{
 	//This function is called when a new position message is received
@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 	ros::NodeHandle n;
 
 	//Subscribe to the desired topics and assign callbacks
-	ros::Subscriber pose_sub = n.subscribe("/amcl_pose", 1, pose_callback);
+	ros::Subscriber pose_sub = n.subscribe("/indoor_pos", 1, pose_callback);
 
 	//Setup topics to Publish from this node
 	ros::Publisher velocity_publisher = n.advertise<geometry_msgs::Twist>("/cmd_vel_mux/input/teleop", 1);
@@ -76,23 +76,23 @@ int main(int argc, char **argv)
 	double referenceX = X;
 	double referenceY = Y;
 	double oldYaw = Yaw;
-	
+
     while (ros::ok())
     {
-		
+
 		double angleDiff = std::abs(Yaw - oldYaw);
 		double currentX = X;
 		double currentY = Y;
-		
+
 
 		ROS_INFO("Current X - [%f] , Y - [%f], Yaw - [%f]",X,Y,Yaw);
 		// first we check if the robot is in a stopped state
-		// it should stop for 1 second after completing a turn, or traversing one side of the square	
+		// it should stop for 1 second after completing a turn, or traversing one side of the square
 		if (isStopped) {
 			ROS_INFO("Stopped");
 			timerCount ++;
 			// stops for 1 second (1/20th s * 20)
-			if(timerCount > 20) { 
+			if(timerCount > 20) {
 				timerCount = 0;
 				// after setting isStopped to false, the robot should be able to turn / drive forward based on the 'isTurning' flag
 				isStopped = false;
@@ -106,12 +106,12 @@ int main(int argc, char **argv)
 			vel.linear.x = 0;
 		}
 		// next we check if the robot is in a turning state
-		// it should check its position reading and keep turning until its 		
+		// it should check its position reading and keep turning until its
 		else if(isTurning) {
 			ROS_INFO("Turning");
 			ROS_INFO("Angle difference : [%f]", angleDiff);
-			// stop turning at 80% of target angle to so robot doesn't overturn do to inertio			
-			if(angleDiff < squareAngle * 0.9) { 
+			// stop turning at 80% of target angle to so robot doesn't overturn do to inertio
+			if(angleDiff < squareAngle * 0.9) {
 		   		vel.angular.z = 0.5;
 		   		vel.linear.x = 0;
 			} else {
@@ -126,9 +126,9 @@ int main(int argc, char **argv)
 			ROS_INFO("Driving Forward");
 			ROS_INFO("referenceX - [%f], referenceY - [%f], currentX - [%f], currentY - [%f]",referenceX, currentX, referenceY, currentY);
 			ROS_INFO("currentDistance - [%f]", currentDistance);
-			// displacement is measured using the trigonometric distance from its reference (x,y) point			
+			// displacement is measured using the trigonometric distance from its reference (x,y) point
 			currentDistance = displacement(referenceX, currentX, referenceY, currentY);
-			ROS_INFO("currentDistance - [%f]", currentDistance);			
+			ROS_INFO("currentDistance - [%f]", currentDistance);
 			if(currentDistance < squareLength) {
 				vel.linear.x = 0.5;
 				vel.angular.z = 0;
@@ -141,11 +141,11 @@ int main(int argc, char **argv)
 				isTurning = true;
 				isStopped = true;
 			}
-			
+
 		}
-		// here is where we actually send the velocity commands 
+		// here is where we actually send the velocity commands
 		velocity_publisher.publish(vel);
-			
+
 		loop_rate.sleep(); //Maintain the loop rate
     	ros::spinOnce();   //Check for new messages
     }

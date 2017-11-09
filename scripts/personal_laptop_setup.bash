@@ -6,7 +6,7 @@
 # NOTE: Requires edits for more robustness, run to local environment call required
 
 cd ~/catkin_ws
-source /opt/ros/kinect/setup.bash
+source /opt/ros/kinetic/setup.bash
 source ~/catkin_ws/devel/setup.bash
  
 
@@ -20,16 +20,17 @@ if [ "$RUN_OPT" == "SIM" ]; then
 	echo "Running simulation" &
 	xterm -hold -e "cd ~/catkin_ws; source devel/setup.bash; roslaunch turtlebot_example turtlebot_gazebo.launch" &
 	sleep 15s
+    xterm -hold -e "cd ~/catkin_ws; source devel/setup.bash; roslaunch turtlebot_rviz_launchers view_navigation.launch" &
 elif [ "$RUN_OPT" == "ROB" ]; then
-    if [ -n "$2" ]; then
+    if [ -z "$2" ]; then
         echo "Requires IP of Netbook"
     else
 	    echo "Running for robot"
 	    export TURTLEBOT_3D_SENSOR=kinect
 	    export ROS_MASTER_URI="http://$2:11311"
 	    export ROS_IP="$2"
+        xterm -hold -e "cd ~/catkin_ws; source devel/setup.bash; roslaunch turtlebot_rviz_launchers view_navigation.launch" &
     fi
 else
 	echo "Option undefined"
 fi
-xterm -hold -e "cd ~/catkin_ws; source devel/setup.bash; roslaunch turtlebot_rviz_launchers view_navigation.launch" &
