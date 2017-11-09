@@ -2,10 +2,10 @@
 //
 // turtlebot_example.cpp
 // This file contains example code for use with ME 597 lab 1
-// It outlines the basic setup of a ros node and the various
+// It outlines the basic setup of a ros node and the various 
 // inputs and outputs.
-//
-// Author: James Servos
+// 
+// Author: James Servos 
 //
 // //////////////////////////////////////////////////////////
 #define SIMULATION
@@ -36,10 +36,12 @@ double ips_yaw;
 double forward_v;
 double omega;
 float motion_model_std = 0.05;
+double y_x = 0;
+double y_y = 0;
 
 #ifdef SIMULATION
 //Callback function for the Position topic (SIMULATION)
-void pose_callback(const gazebo_msgs::ModelStates& msg)
+void pose_callback(const gazebo_msgs::ModelStates& msg) 
 {
 
     int i;
@@ -84,7 +86,7 @@ void motion_model(double * particle_x, double * particle_y, double * theta, doub
    // ROS_INFO("noise_x = [%f]    noise_y = [%f]", noise_x, noise_y);
 
     double v = forward_v;
-    *particle_x = prev_x + v * cos(prev_theta) * d_t + noise_x;
+    *particle_x = prev_x + v * cos(prev_theta) * d_t + noise_x; 
     *particle_y = prev_y + v * sin(prev_theta) * d_t + noise_y;
     *theta = prev_theta + omega;
 }
@@ -112,13 +114,13 @@ int main(int argc, char **argv)
 #ifdef SIMULATION
     ros::Subscriber pose_sub = n.subscribe("/gazebo/model_states", 1, pose_callback);
 #else
-    ros::Subscriber pose_sub = n.subscribe("/indoor_pos", 1, pose_callback); ///geometry_msgs/PoseWithCovarianceStamped
+    ros::Subscriber pose_sub = n.subscribe("/geometry_msgs/PoseWithCovarianceStamped", 1, pose_callback);
 #endif
     ros::Subscriber odom_sub = n.subscribe("/odom", 1, odom_callback);
 
 	//Initialize visualization publisher
 	ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 10);
-
+        
     //Set the loop rate
     float freq = 10;
     float d_t = 1/freq;
@@ -135,7 +137,7 @@ int main(int argc, char **argv)
     std::vector<double> particle_weight (M);
     std::vector<double> cumsum (M);
 
-    /*
+    /* 
     //random device and engine initialization
     std::random_device rd;
     std::mt19937 e2(rd());
@@ -151,26 +153,36 @@ int main(int argc, char **argv)
         particle_y[i] = ips_y;
     }
     while (ros::ok())
-    {
+    { 
         loop_rate.sleep(); //Maintain the loop rate
         ros::spinOnce();   //Check for new messages
-
+    
         //Main loop code:
-
+    
         // Marker initialization
-        visualization_msgs::Marker points;
-        points.header.frame_id = "/map";
-        points.header.stamp = ros::Time::now();
-        points.ns = "particle_filter_node";
-        points.action = visualization_msgs::Marker::ADD;
-        points.pose.orientation.w = 1.0;
-        points.id = 0;
-        //points formatting
-        points.type = visualization_msgs::Marker::POINTS;
-        points.scale.x = 0.05;
-        points.scale.y = 0.05;
-        points.color.g = 1.0f;
-        points.color.a = 1.0;
+        visualization_msgs::Marker points, true_ips_point, noisy_ips_point;
+    	points.header.frame_id = true_ips_point.header.frame_id = noisy_ips_point.header.frame_id = "/map";
+    	points.header.stamp = true_ips_point.header.stamp = noisy_ips_point.header.stamp = ros::Time::now();
+    	points.ns = true_ips_point.ns = noisy_ips_point.ns = "particle_filter_node";
+    	points.action = true_ips_point.action = noisy_ips_point.action = visualization_msgs::Marker::ADD;
+    	points.pose.orientation.w = true_ips_point.pose.orientation.w = noisy_ips_point.pose.orientation.w = 1.0;
+	points.id = 0;
+	true_ips_point.id = 1;
+	noisy_ips_point.id = 2; 
+	//points formatting
+	points.type = true_ips_point.type = noisy_ips_point.type = visualization_msgs::Marker::POINTS;
+	points.scale.x = 0.03;
+    	points.scale.y = 0.03;
+	true_ips_point.scale.x = 0.5;
+	true_ips_point.scale.y = 0.5;
+	noisy_ips_point.scale.x = 0.5;
+	noisy_ips_point.scale.y = 0.5;
+	points.color.b = 1.0;
+    	points.color.a = 1.0;
+	true_ips_point.color.g = 1.0f;
+    	true_ips_point.color.a = 1.0;
+	noisy_ips_point.color.r = 1.0;
+    	noisy_ips_point.color.a = 1.0;
 
         ROS_INFO("odom_callback v: %f omega: %f", forward_v, omega);
         if(forward_v > stop_threshold || forward_v < -stop_threshold)
@@ -182,8 +194,8 @@ int main(int argc, char **argv)
                 motion_model (&particle_x[i], &particle_y[i], &ips_yaw, d_t, &generator);
             }
 
-            double y_x = ips_x + ips_distribution(generator);
-            double y_y = ips_y + ips_distribution(generator);
+            y_x = ips_x + ips_distribution(generator);
+	    y_y = ips_y + ips_distribution(generator);
 
             //apply measurement model to determine particle weights
             for (i = 0; i < M; i++)
@@ -231,7 +243,7 @@ int main(int argc, char **argv)
         //publish points to rviz
 	    for (uint32_t i = 0; i < M; ++i)
 	    {
-
+	    
 	      geometry_msgs::Point p;
 	      p.x = particle_x[i];
 	      p.y = particle_y[i];
@@ -241,6 +253,21 @@ int main(int argc, char **argv)
 
 	    }
 	marker_pub.publish(points);
+	geometry_msgs::Point true_p;
+	true_p.x = ips_x;
+	true_p.y = ips_y;
+	true_p.z = 0;
+
+	true_ips_point.points.push_back(true_p);
+	marker_pub.publish(true_ips_point);
+
+	geometry_msgs::Point noisy_p;
+	noisy_p.x = y_x;
+	noisy_p.y = y_y;
+	noisy_p.z = 0;
+
+	noisy_ips_point.points.push_back(noisy_p);
+	marker_pub.publish(noisy_ips_point);
     }
 
     return 0;
