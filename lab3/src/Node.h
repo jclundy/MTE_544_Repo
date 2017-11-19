@@ -13,8 +13,9 @@ public:
 	std::vector<Edge> edgeList;
 	void addEdge(Edge edge);
 	void removeEdge(int edgeIndex);
-	
-	Node(int indexValue, double xValue, double yValue); 
+	bool Node::isConnectedToNodeAtIndex(int nodeIndex);
+
+	Node(int indexValue, double xValue, double yValue);
 	
 };
 

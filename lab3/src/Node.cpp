@@ -22,3 +22,15 @@ void Node::removeEdge(int edgeIndex)
 	edgeList.pop_back();
 }
 
+bool Node::isConnectedToNodeAtIndex(int nodeIndex)
+{
+	for(int i = 0; i < edgeList.size(); i++)
+	{
+		if(edgeList[i].endNodeIndex == nodeIndex)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
