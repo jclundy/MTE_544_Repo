@@ -39,7 +39,7 @@ double calculate_distance(Node start, Node end)
 	return std::sqrt(dx*dx + dy*dy);
 }
 
-double prune_invalid_connections(vector<Node> graph, nav_msgs::OccupancyGrid map, double robotSize, double gridSize)
+double prune_invalid_connections(vector<Node> graph, nav_msgs::OccupancyGrid map, double robotSize, int isOccupiedThreshold)
 {
 	// Idea: iterate through list of nodes
 	// for each node, iterate through its list of edges
@@ -61,7 +61,7 @@ double prune_invalid_connections(vector<Node> graph, nav_msgs::OccupancyGrid map
 			// find corresponding edge in other node
 			int indexOfEdgeInEndNode = getIndexOfEdgeWithNode(endNode,i);
 			// check if the edge results in a collision
-			bool isCollisionFree = isConnectionValid(startNode, endNode, map, robotSize, gridSize);
+			bool isCollisionFree = isConnectionValid(startNode, endNode, map, robotSize, isOccupiedThreshold);
 			if(isCollisionFree)
 			{
 				// mark edge as validated
@@ -91,7 +91,12 @@ int getIndexOfEdgeWithNode(Node node, int otherNodeIndex)
 	return -1;
 }
 
-bool isConnectionValid(Node start, Node end, nav_msgs::OccupancyGrid map, double robotSize, double gridSize)
+int convertPositionToGridIndex(double position, double mapLowerLimit, double resolution)
+{
+	return int((position - mapLowerLimit)/resolution);
+}
+
+bool isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyGrid map, double robotSize, int isOccupiedThreshold)
 {
 	// Determining if connection valid:
 	// 1. map start and end node x-y position to map x-y indices
@@ -105,6 +110,69 @@ bool isConnectionValid(Node start, Node end, nav_msgs::OccupancyGrid map, double
 	// 		check N tiles above/below tile in list from step 2 in section above
 	// for vertical:
 	// check N tiles to left/right of tile in list from above
-	// for diagonal, check 
-	return false;
+	// for diagonal, check
+	double xMapStart = map.info.origin.position.x;
+	double yMapStart = map.info.origin.position.y;
+	double mapResolution = map.info.resolution;
+	
+	int x0 = convertPositionToGridIndex(startNode.x,xMapStart,mapResolution);
+	int y0 = convertPositionToGridIndex(startNode.y,yMapStart,mapResolution);
+
+	int x1 = convertPositionToGridIndex(endNode.x,xMapStart,mapResolution);
+	int y1 = convertPositionToGridIndex(endNode.y,yMapStart,mapResolution);
+
+	std::vector<int> xTileIndices;
+	std::vector<int> yTileIndices;
+	bresenham(x0, y0, x1, y1, xTileIndices, yTileIndices);
+
+	int numberOfTiles = xTileIndices.size();
+	for(int i = 0; i < numberOfTiles; i++)
+	{
+		int xIndex = xTileIndices[i];
+		int yIndex = yTileIndices[i];
+		int mapDataIndex = xIndex + GRID_SIZE * yIndex;	
+		
+		// if the value at index is non-zero, there is a collision
+		//TODO VERIFY MAP GIVEN IS BINARY 
+		if(map.data[mapDataIndex] >= isOccupiedThreshold)
+			return false;
+	}
+	// no obstacles along path in the grid
+	return true;
+}
+
+void bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::vector<int>& y) {
+
+    int dx = abs(x1 - x0);
+    int dy = abs(y1 - y0);
+    int dx2 = x1 - x0;
+    int dy2 = y1 - y0;
+
+    const bool s = abs(dy) > abs(dx);
+
+    if (s) {
+        int dx2 = dx;
+        dx = dy;
+        dy = dx2;
+    }
+
+    int inc1 = 2 * dy;
+    int d = inc1 - dx;
+    int inc2 = d - dx;
+
+    x.push_back(x0);
+    y.push_back(y0);
+
+    while (x0 != x1 || y0 != y1) {
+        if (s) y0+=sgn(dy2); else x0+=sgn(dx2);
+        if (d < 0) d += inc1;
+        else {
+            d += inc2;
+            if (s) x0+=sgn(dx2); else y0+=sgn(dy2);
+        }
+
+        //Add point to vector
+        x.push_back(x0);
+        y.push_back(y0);
+    }
 }
