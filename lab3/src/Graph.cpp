@@ -1,63 +1,74 @@
-#include "Edge.h"
-#include "Node.h"
-#include <ros/ros.h>
-#include <nav_msgs/OccupancyGrid.h>
-#include <math.h>
-#include <vector>
+#include "Graph.h"
 
-void generate_connections(std::vector<Node> graph, int connectionsPerNode, double maxDistance)
+short sgn(int x) { return x >= 0 ? 1 : -1; }
+
+Graph::Graph()
+{
+	startIndex = 0;
+	endIndex = 0;
+}
+
+Graph::Graph(int start, int end, std::vector<Node> &listOfNodes)
+{
+	startIndex = start;
+	endIndex = end;
+	nodeList = listOfNodes;
+
+}
+
+void Graph::generate_connections(int connectionsPerNode, double maxDistance)
 {
 	// Idea 1: just add all nodes as a connection that are less than X distance away	
 	// iterate through list of nodes
-	for(int i = 0; i < graph.size(); i++)
+	for(int i = 0; i < nodeList.size(); i++)
 	{
-		for(int j = 0; j < graph.size(); j++)
+		for(int j = 0; j < nodeList.size(); j++)
 		{
 			// skip creating connections to same node
 			if (i = j) continue;
 			
 			// check that an edge doesn't already exist between the nodes
-			if(graph[i].isConnectedToNodeAtIndex(j)) continue;
+			if(nodeList[i].isConnectedToNodeAtIndex(j)) continue;
 
 			// check that nodes are close enough
-			double distance = calculate_distance(graph[i], graph[j]);
+			double distance = calculate_distance(nodeList[i], nodeList[j]);
 			if(distance < maxDistance)
 			{
 				// update both nodes with an edge to each other
-				Edge edgeToStart = new Edge(distance,i);
-				Edge edgeToEnd = new Edge(distance, j);
-				graph[i].addEdge(edgeToEnd);
-				graph[j].addEdge(edgeToStart);
+				Edge edgeToStart = Edge(distance,i);
+				Edge edgeToEnd = Edge(distance, j);
+				nodeList[i].addEdge(edgeToEnd);
+				nodeList[j].addEdge(edgeToStart);
 			}
 		}
 	}
 }
 
-double calculate_distance(Node start, Node end)
+double Graph::calculate_distance(Node start, Node end)
 {
-	dx = end.x - start.x;
-	dy = end.y = start.y;
+	double dx = end.x - start.x;
+	double dy = end.y = start.y;
 	return std::sqrt(dx*dx + dy*dy);
 }
 
-double prune_invalid_connections(std::vector<Node> graph, nav_msgs::OccupancyGrid map, double robotSize, int isOccupiedThreshold)
+void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotSize, int isOccupiedThreshold)
 {
 	// Idea: iterate through list of nodes
 	// for each node, iterate through its list of edges
 	// for a valid connection, mark as checked (on current node, and as well as on endpoint node)
 	// remove invalid connections
-	for(int i = 0; i < graph.size(); i++)
+	for(int i = 0; i < nodeList.size(); i++)
 	{
-		for(int j = 0; j < graph[i].edgeList.size(); j++)
+		for(int j = 0; j < nodeList[i].edgeList.size(); j++)
 		{
 			// if edge has already been checked skip to next edge
-			Node startNode = graph[i];
+			Node startNode = nodeList[i];
 			Edge startEdge = startNode.edgeList[j];
+			int endNodeIndex = startEdge.endNodeIndex;
 
-			if(startEdge.isValidated) continue;
+			if(startEdge.validated) continue;
 			int endIndex = startEdge.endNodeIndex;
-			Node endNode = graph[endNodeIndex];
-			Edge endEdge;
+			Node endNode = nodeList[endNodeIndex];
 
 			// find corresponding edge in other node
 			int indexOfEdgeInEndNode = getIndexOfEdgeWithNode(endNode,i);
@@ -66,21 +77,21 @@ double prune_invalid_connections(std::vector<Node> graph, nav_msgs::OccupancyGri
 			if(isCollisionFree)
 			{
 				// mark edge as validated
-				graph[i].edgeList[j].isValidated = true;
+				nodeList[i].edgeList[j].validated = true;
 				// skip if edge to given node is not found
 				if(indexOfEdgeInEndNode < 0) continue;
 				// mark corresponding edge in other node as validated 
-				graph[endIndex].edgeList[indexOfEdgeInEndNode].isValidated = true;
+				nodeList[endIndex].edgeList[indexOfEdgeInEndNode].validated = true;
 			} else {
 				// remove edges from both start and end nodes
-				graph[i].removeEdge(j);
-				graph[endIndex].removeEdge(indexOfEdgeInEndNode);
+				nodeList[i].removeEdge(j);
+				nodeList[endIndex].removeEdge(indexOfEdgeInEndNode);
 			}
 		}
 	}
 }
 
-int getIndexOfEdgeWithNode(Node node, int otherNodeIndex)
+int Graph::getIndexOfEdgeWithNode(Node node, int otherNodeIndex)
 {
 	for(int i = 0; i < node.edgeList.size(); i++)
 	{
@@ -92,12 +103,12 @@ int getIndexOfEdgeWithNode(Node node, int otherNodeIndex)
 	return -1;
 }
 
-int convertPositionToGridIndex(double position, double mapLowerLimit, double resolution)
+int Graph::convertPositionToGridIndex(double position, double mapLowerLimit, double resolution)
 {
 	return int((position - mapLowerLimit)/resolution);
 }
 
-bool isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyGrid map, double robotSize, int isOccupiedThreshold)
+bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyGrid map, double robotSize, int isOccupiedThreshold)
 {
 	// Determining if connection valid:
 	// 1. map start and end node x-y position to map x-y indices
@@ -131,7 +142,7 @@ bool isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyGrid map
 	{
 		int xIndex = xTileIndices[i];
 		int yIndex = yTileIndices[i];
-		int mapDataIndex = xIndex + GRID_SIZE * yIndex;	
+		int mapDataIndex = xIndex + yIndex / mapResolution;	
 		
 		// if the value at index is non-zero, there is a collision
 		//TODO VERIFY MAP GIVEN IS BINARY 
@@ -142,7 +153,7 @@ bool isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyGrid map
 	return true;
 }
 
-void bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::vector<int>& y) {
+void Graph::bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::vector<int>& y) {
 
     int dx = abs(x1 - x0);
     int dy = abs(y1 - y0);

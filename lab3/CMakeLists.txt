@@ -105,14 +105,16 @@ include_directories(
 
 ## Declare a cpp library
 add_library(Node
-   src/Node.cpp
+  src/Node.cpp
 )
 
 add_library(Edge
-   src/Edge.cpp
+  src/Edge.cpp
 )
 
-
+add_library(Graph 
+  src/Graph.cpp
+)
 
 ## Declare a cpp executable
 add_executable(turtlebot_example src/turtlebot_example.cpp)
@@ -138,6 +140,9 @@ add_executable(vis_pose_publisher_node src/vis_pose_publisher.cpp)
  )
  target_link_libraries(Edge
 	${catkin_LIBRARIES}
+ )
+ target_link_libraries(Graph
+  ${catkin_LIBRARIES}
  )
 #############
 ## Install ##
