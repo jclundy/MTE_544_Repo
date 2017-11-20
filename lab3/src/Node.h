@@ -13,7 +13,7 @@ public:
 	std::vector<Edge> edgeList;
 	void addEdge(Edge edge);
 	void removeEdge(int edgeIndex);
-	bool Node::isConnectedToNodeAtIndex(int nodeIndex);
+	bool isConnectedToNodeAtIndex(int nodeIndex);
 
 	Node(int indexValue, double xValue, double yValue);
 	
