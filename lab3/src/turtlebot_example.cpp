@@ -16,6 +16,8 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 
+#include "Node.h"
+
 ros::Publisher marker_pub;
 
 #define TAGID 0
@@ -85,7 +87,10 @@ int main(int argc, char **argv)
 	//Initialize the ROS framework
     ros::init(argc,argv,"main_control");
     ros::NodeHandle n;
-
+    ROS_INFO("before defining node");
+    Node graphNode(0,0,0);
+    ROS_INFO("after defining node");
+    ROS_INFO("defined a new node index : %f x: %f y: %f", graphNode.index, graphNode.x, graphNode.y);
     //Subscribe to the desired topics and assign callbacks
     ros::Subscriber map_sub = n.subscribe("/map", 1, map_callback);
     ros::Subscriber pose_sub = n.subscribe("/indoor_pos", 1, pose_callback);
