@@ -3,8 +3,9 @@
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <math.h>
+#include <vector>
 
-void generate_connections(vector<Node> graph, int connectionsPerNode, double maxDistance)
+void generate_connections(std::vector<Node> graph, int connectionsPerNode, double maxDistance)
 {
 	// Idea 1: just add all nodes as a connection that are less than X distance away	
 	// iterate through list of nodes
@@ -39,7 +40,7 @@ double calculate_distance(Node start, Node end)
 	return std::sqrt(dx*dx + dy*dy);
 }
 
-double prune_invalid_connections(vector<Node> graph, nav_msgs::OccupancyGrid map, double robotSize, int isOccupiedThreshold)
+double prune_invalid_connections(std::vector<Node> graph, nav_msgs::OccupancyGrid map, double robotSize, int isOccupiedThreshold)
 {
 	// Idea: iterate through list of nodes
 	// for each node, iterate through its list of edges
