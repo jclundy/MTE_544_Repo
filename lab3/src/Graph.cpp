@@ -51,7 +51,7 @@ double Graph::calculate_distance(Node start, Node end)
 	return std::sqrt(dx*dx + dy*dy);
 }
 
-void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotSize, int isOccupiedThreshold)
+void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotSize, double isOccupiedThreshold)
 {
 	// Idea: iterate through list of nodes
 	// for each node, iterate through its list of edges
@@ -108,7 +108,7 @@ int Graph::convertPositionToGridIndex(double position, double mapLowerLimit, dou
 	return int((position - mapLowerLimit)/resolution);
 }
 
-bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyGrid map, double robotSize, int isOccupiedThreshold)
+bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyGrid map, double robotSize, double isOccupiedThreshold)
 {
 	// Determining if connection valid:
 	// 1. map start and end node x-y position to map x-y indices
@@ -122,7 +122,7 @@ bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyG
 	// 		check N tiles above/below tile in list from step 2 in section above
 	// for vertical:
 	// check N tiles to left/right of tile in list from above
-	// for diagonal, check
+	
 	double xMapStart = map.info.origin.position.x;
 	double yMapStart = map.info.origin.position.y;
 	double mapResolution = map.info.resolution;
@@ -138,20 +138,57 @@ bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyG
 	bresenham(x0, y0, x1, y1, xTileIndices, yTileIndices);
 
 	int numberOfTiles = xTileIndices.size();
+
+	int padding = 0;
+	bool checkVertical = 0;
+	bool checkHorizontal = 0;
+	if(robotSize > mapResolution)
+	{
+		// need to check additional tiles
+		int ratio = robotSize/mapResolution;
+		// round ratio up to odd value
+		if(ratio % 2 == 0) ratio += 1;
+		// this is how many tiles above/below or right/left center tile that will be checked as well 
+		padding = (ratio - 1)/2;
+
+		int dx = std::abs(x1 - x0);
+		int dy = std::abs(y1 - y0);
+		if(dx >= dy)
+		{
+			// edge is roughly horizontal, perform check on tiles above and below center tile
+			checkVertical = 1;
+		} else {
+			// edge is roughly vertical, perform check on tiles to the left and right of center tile
+			checkHorizontal = 1;
+		}
+	}
 	for(int i = 0; i < numberOfTiles; i++)
 	{
 		int xIndex = xTileIndices[i];
 		int yIndex = yTileIndices[i];
 		int mapDataIndex = xIndex + yIndex / mapResolution;	
 		
-		// if the value at index is non-zero, there is a collision
-		//TODO VERIFY MAP GIVEN IS BINARY 
-		if(map.data[mapDataIndex] >= isOccupiedThreshold)
-			return false;
+		// iterate through tiles adjacent to 
+		for(int j = -padding; j<=padding; j++)
+		{
+			// calculate index of tiles avbove/below
+			int modifiedXIndex = xIndex + j * checkHorizontal;
+			int modifiedYIndex = yIndex + j * checkVertical;
+			int mapDataIndex = modifiedXIndex + modifiedYIndex / mapResolution;
+			// skip check if index is out of bounds
+			if(mapDataIndex > map.data.size() - 1) continue;
+
+			// if the value at mapDataIndex is occupied, there is a collision
+			if(map.data[mapDataIndex] >= isOccupiedThreshold)
+			{
+				return false;
+			}
+		}
 	}
-	// no obstacles along path in the grid
+	// no obstacles were detected along the given edge
 	return true;
 }
+
 
 void Graph::bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::vector<int>& y) {
 
