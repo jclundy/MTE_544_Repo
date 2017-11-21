@@ -121,11 +121,7 @@ void drawCurve(int k)
 void map_callback(const nav_msgs::OccupancyGrid& msg)
 {
     // Assuming 100x100 map input, will complain if that doesn't match
-    ROS_INFO("Received OG of Width: %d Height: %d", msg.info.width, msg.info.height);
-    if(msg.info.width == GRID_SIZE && msg.info.height == GRID_SIZE) {
-        ROS_INFO("Data is of expected size");
-    }
-    else {
+    if(msg.info.width != GRID_SIZE || msg.info.height != GRID_SIZE) {
         ROS_INFO("Inconsistent map sizes, dumping...");
         return;
     }
