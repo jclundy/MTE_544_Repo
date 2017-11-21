@@ -15,7 +15,7 @@ public:
 	int startIndex;
 	int endIndex;
 	std::vector<Node> nodeList;
-	
+
 	Graph();
 
 	Graph(int start, int end, std::vector<Node> &listOfNodes);
@@ -23,6 +23,8 @@ public:
 	void generate_connections(int connectionsPerNode, double maxDistance);
 
 	void prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotSize, double isOccupiedThreshold);
+
+    bool add_new_node(int x, int y);
 
 private:
 	double calculate_distance(Node start, Node end);

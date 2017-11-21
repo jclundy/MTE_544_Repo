@@ -18,7 +18,7 @@ Graph::Graph(int start, int end, std::vector<Node> &listOfNodes)
 
 void Graph::generate_connections(int connectionsPerNode, double maxDistance)
 {
-	// Idea 1: just add all nodes as a connection that are less than X distance away	
+	// Idea 1: just add all nodes as a connection that are less than X distance away
 	// iterate through list of nodes
 	for(int i = 0; i < nodeList.size(); i++)
 	{
@@ -26,7 +26,7 @@ void Graph::generate_connections(int connectionsPerNode, double maxDistance)
 		{
 			// skip creating connections to same node
 			if (i = j) continue;
-			
+
 			// check that an edge doesn't already exist between the nodes
 			if(nodeList[i].isConnectedToNodeAtIndex(j)) continue;
 
@@ -80,7 +80,7 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotS
 				nodeList[i].edgeList[j].validated = true;
 				// skip if edge to given node is not found
 				if(indexOfEdgeInEndNode < 0) continue;
-				// mark corresponding edge in other node as validated 
+				// mark corresponding edge in other node as validated
 				nodeList[endIndex].edgeList[indexOfEdgeInEndNode].validated = true;
 			} else {
 				// remove edges from both start and end nodes
@@ -112,21 +112,21 @@ bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyG
 {
 	// Determining if connection valid:
 	// 1. map start and end node x-y position to map x-y indices
-	// 2. Use line-drawing algorithm, get list of tiles 
+	// 2. Use line-drawing algorithm, get list of tiles
 	// 3. check each tile in the list if it is occupied
 	// 4. if tile in list is occupied connection is not valid
-	// 
+	//
 	// If robot is wider than tile width:
 	// 1. determine if edge is more horizontal/vertical
 	// 2. for ~horizontal:
 	// 		check N tiles above/below tile in list from step 2 in section above
 	// for vertical:
 	// check N tiles to left/right of tile in list from above
-	
+
 	double xMapStart = map.info.origin.position.x;
 	double yMapStart = map.info.origin.position.y;
 	double mapResolution = map.info.resolution;
-	
+
 	int x0 = convertPositionToGridIndex(startNode.x,xMapStart,mapResolution);
 	int y0 = convertPositionToGridIndex(startNode.y,yMapStart,mapResolution);
 
@@ -148,7 +148,7 @@ bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyG
 		int ratio = robotSize/mapResolution;
 		// round ratio up to odd value
 		if(ratio % 2 == 0) ratio += 1;
-		// this is how many tiles above/below or right/left center tile that will be checked as well 
+		// this is how many tiles above/below or right/left center tile that will be checked as well
 		padding = (ratio - 1)/2;
 
 		int dx = std::abs(x1 - x0);
@@ -166,9 +166,9 @@ bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyG
 	{
 		int xIndex = xTileIndices[i];
 		int yIndex = yTileIndices[i];
-		int mapDataIndex = xIndex + yIndex / mapResolution;	
-		
-		// iterate through tiles adjacent to 
+		int mapDataIndex = xIndex + yIndex / mapResolution;
+
+		// iterate through tiles adjacent to
 		for(int j = -padding; j<=padding; j++)
 		{
 			// calculate index of tiles avbove/below
@@ -224,4 +224,16 @@ void Graph::bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::
         x.push_back(x0);
         y.push_back(y0);
     }
+}
+
+
+bool Graph::add_new_node(int x, int y) {
+    for(int i = 0; i<endIndex; i++) {
+        if(nodeList[i].x == x && nodeList[i].y == y)
+            return false;
+    }
+
+    Node new_node = Node(endIndex, x, y);
+    nodeList.push_back(new_node);
+    return true;
 }

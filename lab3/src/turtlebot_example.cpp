@@ -3,7 +3,7 @@
 // turtlebot_example.cpp
 // This file contains example code for use with ME 597 lab 3
 //
-// Author: James Servos 
+// Author: James Servos
 //
 // //////////////////////////////////////////////////////////
 
@@ -19,11 +19,12 @@
 #include <math.h>
 #include "Node.h"
 #include <vector>
-
-#include "Node.h"
+#include <cstdlib>
+#include "Graph.h"
 
 ros::Publisher marker_pub;
-
+#define GRID_SIZE 100
+#define NUM_SAMPLES 500
 #define TAGID 0
 #define PI 3.14159265
 #define SIMULATION
@@ -34,7 +35,8 @@ float ips_yaw;
 float forward_v;
 float omega;
 
-
+double occ_grid[GRID_SIZE][GRID_SIZE];
+Graph graph;
 
 struct Temp_node
 {
@@ -44,9 +46,8 @@ struct Temp_node
 
 #ifdef SIMULATION
 //Callback function for the Position topic (SIMULATION)
-void pose_callback(const gazebo_msgs::ModelStates& msg) 
+void pose_callback(const gazebo_msgs::ModelStates& msg)
 {
-
     int i;
     for(i = 0; i < msg.name.size(); i++) if(msg.name[i] == "mobile_base") break;
 
@@ -77,7 +78,7 @@ void odom_callback(const nav_msgs::Odometry::ConstPtr& odom)
 
 
 //Example of drawing a curve
-void drawCurve(int k) 
+void drawCurve(int k)
 {
    // Curves are drawn as a series of stright lines
    // Simply sample your curves into a series of points
@@ -103,11 +104,11 @@ void drawCurve(int k)
        p.x = x;
        p.y = y;
        p.z = 0; //not used
-       lines.points.push_back(p); 
+       lines.points.push_back(p);
 
        //curve model
        x = x+0.1;
-       y = sin(0.1*i*k);   
+       y = sin(0.1*i*k);
    }
 
    //publish new curve
@@ -115,12 +116,55 @@ void drawCurve(int k)
 
 }
 
+// Inline printing of map, can be removed once RViz formatting is done
+void map_print(double og[][GRID_SIZE]) {
+    for(int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
+        if(i%GRID_SIZE == 0)
+            std::cout << "\n";
+
+        if(og[i/GRID_SIZE][i%GRID_SIZE] == 0)
+            std::cout << " ";
+        else if(og[i/GRID_SIZE][i%GRID_SIZE] == 100)
+            std::cout << "H";
+        else if(og[i/GRID_SIZE][i%GRID_SIZE] == -10)
+            std::cout << "O";
+        else
+            std::cout << "Z";
+    }
+    std::cout << std::endl;
+}
+
 //Callback function for the map
 void map_callback(const nav_msgs::OccupancyGrid& msg)
 {
-    //This function is called when a new map is received
-    
-    //you probably want to save the map into a form which is easy to work with
+    // Assuming 100x100 map input, will complain if that doesn't match
+    ROS_INFO("Received OG of Width: %d Height: %d", msg.info.width, msg.info.height);
+    if(msg.info.width == GRID_SIZE && msg.info.height == GRID_SIZE) {
+        ROS_INFO("Data is of expected size");
+    }
+    else {
+        ROS_INFO("Inconsistent map sizes, dumping...");
+        return;
+    }
+
+    // Reformat input map
+    for(int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
+        occ_grid[i/GRID_SIZE][i%GRID_SIZE] = msg.data[i];
+    }
+
+    // Random node placement
+    for(int j = 0; j < NUM_SAMPLES; j) {
+        int x = rand()%GRID_SIZE;
+        int y = rand()%GRID_SIZE;
+        if(occ_grid[x][y] == 0 && graph.add_new_node(x, y))
+            j++;
+    }
+
+    // Unnecessary, used to calibrate number of samples
+    // for(int k = 0; k < NUM_SAMPLES; k++) {
+    //     occ_grid[(int)graph.nodeList[k].x][(int)graph.nodeList[k].y] = -10;
+    // }
+    // map_print(occ_grid);
 }
 
 float set_speed(float target_x, float target_y, float prev_theta_error, ros::Publisher velocity_publisher)
@@ -166,9 +210,7 @@ int main(int argc, char **argv)
 	//Initialize the ROS framework
     ros::init(argc,argv,"main_control");
     ros::NodeHandle n;
-    ROS_INFO("before defining node");
     Node graphNode(0,0,0);
-    ROS_INFO("after defining node");
     ROS_INFO("defined a new node index : %f x: %f y: %f", graphNode.index, graphNode.x, graphNode.y);
     //Subscribe to the desired topics and assign callbacks
     ros::Subscriber map_sub = n.subscribe("/map", 1, map_callback);
@@ -182,7 +224,6 @@ int main(int argc, char **argv)
     //Setup topics to Publish from this node
     ros::Publisher velocity_publisher = n.advertise<geometry_msgs::Twist>("/cmd_vel_mux/input/navi", 1);
     marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 1, true);
-    
 
     //Set the loop rate
     ros::Rate loop_rate(20);    //20Hz update rate
@@ -217,7 +258,6 @@ int main(int argc, char **argv)
     waypoints.push_back(Node(4,-10,-10));
 */
     uint wpt_ind = 0;
-     
 
     while (ros::ok())
     {
@@ -235,12 +275,12 @@ int main(int argc, char **argv)
       }
       float error_mag = get_error_magnitude(waypoints[wpt_ind].x, waypoints[wpt_ind].y);
       theta_error = set_speed(waypoints[wpt_ind].x, waypoints[wpt_ind].y, theta_error, velocity_publisher);
-      ROS_INFO("theta_error = %f,   x,y = %f \t %f    dist=%f", theta_error, ips_x, ips_y, error_mag);
+      //ROS_INFO("theta_error = %f,   x,y = %f \t %f    dist=%f", theta_error, ips_x, ips_y, error_mag);
 
       if (error_mag < 0.05)
       {
         wpt_ind++;
-      }    
+      }
     }
 
     return 0;
