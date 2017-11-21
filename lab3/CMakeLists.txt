@@ -105,7 +105,7 @@ include_directories(
 )
 
 ## Declare a cpp library
-add_library(CUSTOM include/Node.cpp include/Edge.cpp include/Graph.cpp)
+add_library(CUSTOM include/Node.cpp include/Edge.cpp include/Graph.cpp include/rviz_draw.cpp)
 
 ## Declare a cpp executable
 add_executable(turtlebot_example src/turtlebot_example.cpp)

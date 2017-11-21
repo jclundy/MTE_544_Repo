@@ -23,7 +23,10 @@
 #include "Graph.h"
 #include <ctime>
 
+#include "rviz_draw.h"
+
 ros::Publisher marker_pub;
+RViz_Draw drawer;
 #define GRID_SIZE 100
 #define NUM_SAMPLES 500
 #define TAGID 0
@@ -126,23 +129,6 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
         return;
     }
 
-    // Marker initialization
-    visualization_msgs::Marker points;
-    points.header.frame_id ="/map";
-    points.header.stamp = ros::Time::now();
-    points.ns = "node_samples";
-    points.action = visualization_msgs::Marker::ADD;
-    points.pose.orientation.z = -0.7071; //to match amcl map
-    points.pose.orientation.w = 0.7071;
-    points.pose.position.x = -1;
-    points.pose.position.y = 5;
-    points.id = 0;
-    //points formatting
-    points.type = visualization_msgs::Marker::POINTS;
-    points.scale.x = 0.05;
-    points.scale.y = 0.05;
-    points.color.r = 1.0;
-    points.color.a = 1.0;
 
     // Reformat input map
     for(int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
@@ -155,17 +141,11 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
         int x = rand()%GRID_SIZE;
         int y = rand()%GRID_SIZE;
         if(occ_grid[x][y] == 0 && graph.add_new_node(x, y)) {
-            geometry_msgs::Point p;
-            p.x = x*0.1;
-            p.y = y*0.1;
-            p.z = 0;
-            points.points.push_back(p);
+            drawer.add_point(x*0.1, y*0.1);
             j++;
         }
     }
-
-    // Publish sampling nodes to RVIZ
-    marker_pub.publish(points);
+    drawer.pub();
 }
 
 float set_speed(float target_x, float target_y, float prev_theta_error, ros::Publisher velocity_publisher)
@@ -213,6 +193,8 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
     Node graphNode(0,0,0);
     ROS_INFO("defined a new node index : %f x: %f y: %f", graphNode.index, graphNode.x, graphNode.y);
+    drawer= RViz_Draw(marker_pub); //Initialize drawer for rviz
+
     //Subscribe to the desired topics and assign callbacks
     ros::Subscriber map_sub = n.subscribe("/map", 1, map_callback);
 
