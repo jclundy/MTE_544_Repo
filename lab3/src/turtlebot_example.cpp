@@ -229,9 +229,14 @@ int main(int argc, char **argv)
     ros::Rate loop_rate(20);    //20Hz update rate
     float theta_error = 0;
 
-    Temp_node node1;
-    node1.x = node1.y = 0;
-
+    uint num_waypoints = 5;
+    std::vector<Node> waypoints;
+    waypoints.push_back(Node(0,0,0));
+    waypoints.push_back(Node(1,10,10));
+    waypoints.push_back(Node(2,10,-10));
+    waypoints.push_back(Node(3,-10,-10));
+    waypoints.push_back(Node(4,-10,10));
+    /*
     uint num_waypoints = 5;
     std::vector<Temp_node> waypoints;
     for (int i = 0; i < num_waypoints; i++)
@@ -248,6 +253,7 @@ int main(int argc, char **argv)
     waypoints[3].x = -10;
     waypoints[4].y = -10;
     waypoints[4].y = 10;
+    */
 
 /*
     std::vector<Node> waypoints;
