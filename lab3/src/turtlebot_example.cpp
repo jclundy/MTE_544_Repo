@@ -21,6 +21,7 @@
 #include <vector>
 #include <cstdlib>
 #include "Graph.h"
+#include <ctime>
 
 ros::Publisher marker_pub;
 #define GRID_SIZE 100
@@ -116,24 +117,6 @@ void drawCurve(int k)
 
 }
 
-// Inline printing of map, can be removed once RViz formatting is done
-void map_print(double og[][GRID_SIZE]) {
-    for(int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
-        if(i%GRID_SIZE == 0)
-            std::cout << "\n";
-
-        if(og[i/GRID_SIZE][i%GRID_SIZE] == 0)
-            std::cout << " ";
-        else if(og[i/GRID_SIZE][i%GRID_SIZE] == 100)
-            std::cout << "H";
-        else if(og[i/GRID_SIZE][i%GRID_SIZE] == -10)
-            std::cout << "O";
-        else
-            std::cout << "Z";
-    }
-    std::cout << std::endl;
-}
-
 //Callback function for the map
 void map_callback(const nav_msgs::OccupancyGrid& msg)
 {
@@ -147,24 +130,46 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
         return;
     }
 
+    // Marker initialization
+    visualization_msgs::Marker points;
+    points.header.frame_id ="/map";
+    points.header.stamp = ros::Time::now();
+    points.ns = "node_samples";
+    points.action = visualization_msgs::Marker::ADD;
+    points.pose.orientation.z = -0.7071; //to match amcl map
+    points.pose.orientation.w = 0.7071;
+    points.pose.position.x = -1;
+    points.pose.position.y = 5;
+    points.id = 0;
+    //points formatting
+    points.type = visualization_msgs::Marker::POINTS;
+    points.scale.x = 0.05;
+    points.scale.y = 0.05;
+    points.color.r = 1.0;
+    points.color.a = 1.0;
+
     // Reformat input map
     for(int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
-        occ_grid[i/GRID_SIZE][i%GRID_SIZE] = msg.data[i];
+        occ_grid[GRID_SIZE-1 - i/GRID_SIZE][i%GRID_SIZE] = msg.data[i];
     }
 
     // Random node placement
+    srand(time(NULL));
     for(int j = 0; j < NUM_SAMPLES; j) {
         int x = rand()%GRID_SIZE;
         int y = rand()%GRID_SIZE;
-        if(occ_grid[x][y] == 0 && graph.add_new_node(x, y))
+        if(occ_grid[x][y] == 0 && graph.add_new_node(x, y)) {
+            geometry_msgs::Point p;
+            p.x = x*0.1;
+            p.y = y*0.1;
+            p.z = 0;
+            points.points.push_back(p);
             j++;
+        }
     }
 
-    // Unnecessary, used to calibrate number of samples
-    // for(int k = 0; k < NUM_SAMPLES; k++) {
-    //     occ_grid[(int)graph.nodeList[k].x][(int)graph.nodeList[k].y] = -10;
-    // }
-    // map_print(occ_grid);
+    // Publish sampling nodes to RVIZ
+    marker_pub.publish(points);
 }
 
 float set_speed(float target_x, float target_y, float prev_theta_error, ros::Publisher velocity_publisher)
@@ -271,9 +276,9 @@ int main(int argc, char **argv)
     	ros::spinOnce();   //Check for new messages
 
 	 //Draw Curves
-      drawCurve(1);
-      drawCurve(2);
-      drawCurve(4);
+      //drawCurve(1);
+      //drawCurve(2);
+      //drawCurve(4);
 
       if (wpt_ind >= num_waypoints)
       {
