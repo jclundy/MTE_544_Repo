@@ -25,7 +25,7 @@
 
 ros::Publisher marker_pub;
 #define GRID_SIZE 100
-#define NUM_SAMPLES 500
+#define NUM_SAMPLES 10
 #define TAGID 0
 #define PI 3.14159265
 #define SIMULATION
@@ -211,8 +211,6 @@ int main(int argc, char **argv)
 	//Initialize the ROS framework
     ros::init(argc,argv,"main_control");
     ros::NodeHandle n;
-    Node graphNode(0,0,0);
-    ROS_INFO("defined a new node index : %f x: %f y: %f", graphNode.index, graphNode.x, graphNode.y);
     //Subscribe to the desired topics and assign callbacks
     ros::Subscriber map_sub = n.subscribe("/map", 1, map_callback);
 
@@ -264,17 +262,33 @@ int main(int argc, char **argv)
     waypoints.push_back(Node(3,-10,10));
     waypoints.push_back(Node(4,-10,-10));
 */
-    uint wpt_ind = 0;
+     uint wpt_ind = 0;
+     bool graph_generated = false;
+     bool graph_drawn = false;
 
     while (ros::ok())
     {
     	loop_rate.sleep(); //Maintain the loop rate
     	ros::spinOnce();   //Check for new messages
 
-	 //Draw Curves
-      //drawCurve(1);
-      //drawCurve(2);
-      //drawCurve(4);
+      if(!graph_generated && graph.nodeList.size() == NUM_SAMPLES)
+      {
+        graph_generated = true;
+      }
+
+      if(!graph_drawn && graph_generated)
+      {
+        ROS_INFO("before generating edges \n");
+        graph.print_graph_to_console();
+        ROS_INFO("after generating edges \n");
+        graph.generate_connections(0, 100);
+        graph.print_graph_to_console();
+        graph.draw_in_rviz(marker_pub);
+        graph_drawn = true;
+      }
+
+
+      graph.draw_in_rviz(marker_pub);
 
       if (wpt_ind >= num_waypoints)
       {

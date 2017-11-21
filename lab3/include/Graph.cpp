@@ -22,11 +22,8 @@ void Graph::generate_connections(int connectionsPerNode, double maxDistance)
 	// iterate through list of nodes
 	for(int i = 0; i < nodeList.size(); i++)
 	{
-		for(int j = 0; j < nodeList.size(); j++)
+		for(int j = i + 1; j < nodeList.size(); j++)
 		{
-			// skip creating connections to same node
-			if (i = j) continue;
-
 			// check that an edge doesn't already exist between the nodes
 			if(nodeList[i].isConnectedToNodeAtIndex(j)) continue;
 
@@ -47,7 +44,7 @@ void Graph::generate_connections(int connectionsPerNode, double maxDistance)
 double Graph::calculate_distance(Node start, Node end)
 {
 	double dx = end.x - start.x;
-	double dy = end.y = start.y;
+	double dy = end.y - start.y;
 	return std::sqrt(dx*dx + dy*dy);
 }
 
@@ -67,7 +64,6 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotS
 			int endNodeIndex = startEdge.endNodeIndex;
 
 			if(startEdge.validated) continue;
-			int endIndex = startEdge.endNodeIndex;
 			Node endNode = nodeList[endNodeIndex];
 
 			// find corresponding edge in other node
@@ -81,11 +77,11 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotS
 				// skip if edge to given node is not found
 				if(indexOfEdgeInEndNode < 0) continue;
 				// mark corresponding edge in other node as validated
-				nodeList[endIndex].edgeList[indexOfEdgeInEndNode].validated = true;
+				nodeList[endNodeIndex].edgeList[indexOfEdgeInEndNode].validated = true;
 			} else {
 				// remove edges from both start and end nodes
 				nodeList[i].removeEdge(j);
-				nodeList[endIndex].removeEdge(indexOfEdgeInEndNode);
+				nodeList[endNodeIndex].removeEdge(indexOfEdgeInEndNode);
 			}
 		}
 	}
@@ -174,7 +170,7 @@ bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyG
 			// calculate index of tiles avbove/below
 			int modifiedXIndex = xIndex + j * checkHorizontal;
 			int modifiedYIndex = yIndex + j * checkVertical;
-			int mapDataIndex = modifiedXIndex + modifiedYIndex / mapResolution;
+			int mapDataIndex = modifiedXIndex + modifiedYIndex * 100;  //TODO THIS SHOULD BE PASSED IN
 			// skip check if index is out of bounds
 			if(mapDataIndex > map.data.size() - 1) continue;
 
@@ -236,4 +232,99 @@ bool Graph::add_new_node(int x, int y) {
     Node new_node = Node(endIndex, x, y);
     nodeList.push_back(new_node);
     return true;
+}
+
+
+void Graph::draw_in_rviz(ros::Publisher& marker_pub)
+{
+	//publish points to rviz
+	visualization_msgs::Marker points;
+    points.header.frame_id ="/map";
+    points.header.stamp = ros::Time::now();
+    points.ns = "node_samples";
+    points.action = visualization_msgs::Marker::ADD;
+    points.pose.orientation.z = -0.7071; //to match amcl map
+    points.pose.orientation.w = 0.7071;
+    points.pose.position.x = -1;
+    points.pose.position.y = 5;
+    points.id = 0;
+    //points formatting
+    points.type = visualization_msgs::Marker::POINTS;
+    points.scale.x = 0.05;
+    points.scale.y = 0.05;
+    points.color.r = 1.0;
+    points.color.a = 1.0;
+
+    for (int i = 0; i < nodeList.size(); i++)
+    {
+    
+      geometry_msgs::Point p;
+      p.x = nodeList[i].x;
+      p.y = nodeList[i].y;
+      p.z = 0;
+      for(int j = 0; j < nodeList[i].edgeList.size(); j++)
+      {
+      	int endNodeIndex = nodeList[i].edgeList[j].endNodeIndex;
+      	double x1 = nodeList[endNodeIndex].x;
+      	double y1 = nodeList[endNodeIndex].y;
+      	int id = i + 100*j;
+      	draw_line(id, p.x, p.y, x1, y1, marker_pub);
+      }
+      points.points.push_back(p);
+
+    }
+    marker_pub.publish(points);
+}
+
+void Graph::draw_line(int lineId, double x0, double y0, double x1, double y1, ros::Publisher& marker_pub)
+{
+	double x = x0;
+	double y = y0;
+	double steps = 50;
+	double slope = (y1-y0)/(x1 - x0);
+	double dx = 0.1;
+	double dy = dx * slope;
+
+	visualization_msgs::Marker lines;
+	lines.header.frame_id = "/map";
+	lines.id = lineId; //each curve must have a unique id or you will overwrite an old ones
+	lines.type = visualization_msgs::Marker::LINE_STRIP;
+	lines.action = visualization_msgs::Marker::ADD;
+	lines.ns = "curves";
+	lines.scale.x = 0.05;
+	lines.scale.y = 0.05;
+	lines.color.r = 0.0;
+	lines.color.b = 1.0;
+	lines.color.a = 1.0;
+
+	//generate curve points
+	for(int i = 0; i < steps; i++) {
+		geometry_msgs::Point p;
+		p.x = x;
+		p.y = y;
+		p.z = 0; //not used
+		lines.points.push_back(p);
+
+		//curve model
+		x = x+dx;
+		y = y+dy;
+	}
+
+	//publish new curve
+	marker_pub.publish(lines);
+}
+
+void Graph::print_graph_to_console()
+{
+	for(int i = 0; i < nodeList.size(); i++)
+	{
+		ROS_INFO("Node %i \n", i);
+		ROS_INFO("X %f, Y %f \n", nodeList[i].x, nodeList[i].y);
+		int size = nodeList[i].edgeList.size();
+		ROS_INFO("Number of edges: %i \n", size);
+		for(int j = 0; j < size; j++)
+		{
+			ROS_INFO("Edge to Node %i, cost %f \n", nodeList[i].edgeList[j].endNodeIndex, nodeList[i].edgeList[j].cost);
+		}
+	}
 }

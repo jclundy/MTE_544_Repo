@@ -6,6 +6,7 @@
 #include "Node.h"
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <visualization_msgs/Marker.h>
 #include <math.h>
 #include <vector>
 
@@ -26,6 +27,10 @@ public:
 
     bool add_new_node(int x, int y);
 
+    void draw_in_rviz(ros::Publisher& publisher);
+
+    void print_graph_to_console();
+
 private:
 	double calculate_distance(Node start, Node end);
 
@@ -36,6 +41,8 @@ private:
 	bool isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyGrid map, double robotSize, double isOccupiedThreshold);
 
 	void bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::vector<int>& y);
+
+	void draw_line(int lineId, double x0, double y0, double x1, double y1, ros::Publisher& marker_pub);
 };
 
 #endif
