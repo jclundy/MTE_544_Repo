@@ -238,77 +238,49 @@ bool Graph::add_new_node(int x, int y) {
 void Graph::draw_in_rviz(ros::Publisher& marker_pub)
 {
 	//publish points to rviz
-	visualization_msgs::Marker points;
-    points.header.frame_id ="/map";
-    points.header.stamp = ros::Time::now();
-    points.ns = "node_samples";
-    points.action = visualization_msgs::Marker::ADD;
-    points.pose.orientation.z = -0.7071; //to match amcl map
-    points.pose.orientation.w = 0.7071;
-    points.pose.position.x = -1;
-    points.pose.position.y = 5;
-    points.id = 0;
-    //points formatting
-    points.type = visualization_msgs::Marker::POINTS;
-    points.scale.x = 0.05;
-    points.scale.y = 0.05;
-    points.color.r = 1.0;
-    points.color.a = 1.0;
-
+	int id = 0;
     for (int i = 0; i < nodeList.size(); i++)
     {
-    
-      geometry_msgs::Point p;
-      p.x = nodeList[i].x;
-      p.y = nodeList[i].y;
-      p.z = 0;
       for(int j = 0; j < nodeList[i].edgeList.size(); j++)
       {
       	int endNodeIndex = nodeList[i].edgeList[j].endNodeIndex;
+		double x0 = nodeList[i].x;
+      	double y0 = nodeList[i].y;      	
       	double x1 = nodeList[endNodeIndex].x;
       	double y1 = nodeList[endNodeIndex].y;
-      	int id = i + 100*j;
-      	draw_line(id, p.x, p.y, x1, y1, marker_pub);
+      	draw_line(id, x0, y0, x1, y1, marker_pub);
+      	id++;
       }
-      points.points.push_back(p);
-
     }
-    marker_pub.publish(points);
 }
 
 void Graph::draw_line(int lineId, double x0, double y0, double x1, double y1, ros::Publisher& marker_pub)
 {
-	double x = x0;
-	double y = y0;
-	double steps = 50;
-	double slope = (y1-y0)/(x1 - x0);
-	double dx = 0.1;
-	double dy = dx * slope;
-
 	visualization_msgs::Marker lines;
 	lines.header.frame_id = "/map";
 	lines.id = lineId; //each curve must have a unique id or you will overwrite an old ones
-	lines.type = visualization_msgs::Marker::LINE_STRIP;
+	lines.type = visualization_msgs::Marker::LINE_LIST;
 	lines.action = visualization_msgs::Marker::ADD;
 	lines.ns = "curves";
 	lines.scale.x = 0.05;
 	lines.scale.y = 0.05;
-	lines.color.r = 0.0;
-	lines.color.b = 1.0;
+	lines.color.r = 1.0;
+	lines.color.b = 0.0;
 	lines.color.a = 1.0;
+	lines.pose.orientation.z = -0.7071; //to match amcl map
+    lines.pose.orientation.w = 0.7071;
+    lines.pose.position.x = -1;
+    lines.pose.position.y = 5;
+    geometry_msgs::Point p0, p1;
+	p0.x = x0*0.1;
+	p0.y = y0*0.1;
+	p0.z = 0; //not used
+	p1.x = x1 * 0.1;
+	p1.y = y1 * 0.1;
+	p1.z = 0;
 
-	//generate curve points
-	for(int i = 0; i < steps; i++) {
-		geometry_msgs::Point p;
-		p.x = x;
-		p.y = y;
-		p.z = 0; //not used
-		lines.points.push_back(p);
-
-		//curve model
-		x = x+dx;
-		y = y+dy;
-	}
+	lines.points.push_back(p0);
+	lines.points.push_back(p1);
 
 	//publish new curve
 	marker_pub.publish(lines);
