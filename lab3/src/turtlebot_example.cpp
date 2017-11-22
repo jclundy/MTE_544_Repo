@@ -91,24 +91,27 @@ void drawCurve(int k)
    double y = 0;
    double steps = 50;
 
-   visualization_msgs::Marker lines;
-   lines.header.frame_id = "/map";
-   lines.id = k; //each curve must have a unique id or you will overwrite an old ones
-   lines.type = visualization_msgs::Marker::LINE_STRIP;
-   lines.action = visualization_msgs::Marker::ADD;
-   lines.ns = "curves";
-   lines.scale.x = 0.1;
-   lines.color.r = 1.0;
-   lines.color.b = 0.2*k;
-   lines.color.a = 1.0;
+   //visualization_msgs::Marker lines;
+   //lines.header.frame_id = "/map";
+   //lines.id = k; //each curve must have a unique id or you will overwrite an old ones
+   //lines.type = visualization_msgs::Marker::LINE_STRIP;
+   //lines.action = visualization_msgs::Marker::ADD;
+   //lines.ns = "curves";
+   //lines.scale.x = 0.1;
+   //lines.color.r = 1.0;
+   //lines.color.b = 0.2*k;
+   //lines.color.a = 1.0;
+
+   drawer.claim(visualization_msgs::Marker::LINE_STRIP);
 
    //generate curve points
    for(int i = 0; i < steps; i++) {
-       geometry_msgs::Point p;
-       p.x = x;
-       p.y = y;
-       p.z = 0; //not used
-       lines.points.push_back(p);
+       //geometry_msgs::Point p;
+       //p.x = x;
+       //p.y = y;
+       //p.z = 0; //not used
+       //lines.points.push_back(p);
+       drawer.add_point(x, y);
 
        //curve model
        x = x+0.1;
@@ -116,7 +119,9 @@ void drawCurve(int k)
    }
 
    //publish new curve
-   marker_pub.publish(lines);
+   //marker_pub.publish(lines);
+   drawer.pub();
+   drawer.release();
 
 }
 
@@ -129,13 +134,13 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
         return;
     }
 
-
     // Reformat input map
     for(int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
         occ_grid[GRID_SIZE-1 - i/GRID_SIZE][i%GRID_SIZE] = msg.data[i];
     }
 
     // Random node placement
+    drawer.claim(visualization_msgs::Marker::POINTS);
     srand(time(NULL));
     for(int j = 0; j < NUM_SAMPLES; j) {
         int x = rand()%GRID_SIZE;
@@ -146,6 +151,7 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
         }
     }
     drawer.pub();
+    drawer.release();
 }
 
 float set_speed(float target_x, float target_y, float prev_theta_error, ros::Publisher velocity_publisher)
@@ -193,7 +199,7 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
     Node graphNode(0,0,0);
     ROS_INFO("defined a new node index : %f x: %f y: %f", graphNode.index, graphNode.x, graphNode.y);
-    drawer= RViz_Draw(marker_pub); //Initialize drawer for rviz
+    drawer = RViz_Draw(n); //Initialize drawer for rviz
 
     //Subscribe to the desired topics and assign callbacks
     ros::Subscriber map_sub = n.subscribe("/map", 1, map_callback);
