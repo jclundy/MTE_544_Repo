@@ -1,7 +1,7 @@
 #include "Node.h"
 Node::Node(int indexValue, double xValue, double yValue)
 {
-	index = index;
+	index = indexValue;
 	x = xValue;
 	y = yValue;
 	

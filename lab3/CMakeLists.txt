@@ -25,6 +25,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
 # catkin_python_setup()
 
+
+add_compile_options(-std=c++11)
+
 ################################################
 ## Declare ROS messages, services and actions ##
 ################################################
