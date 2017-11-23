@@ -25,6 +25,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
 # catkin_python_setup()
 
+
+add_compile_options(-std=c++11)
+
 ################################################
 ## Declare ROS messages, services and actions ##
 ################################################
@@ -105,7 +108,7 @@ include_directories(
 )
 
 ## Declare a cpp library
-add_library(CUSTOM include/Node.cpp include/Edge.cpp include/Graph.cpp)
+add_library(CUSTOM include/Node.cpp include/Edge.cpp include/Graph.cpp include/rviz_draw.cpp)
 
 ## Declare a cpp executable
 add_executable(turtlebot_example src/turtlebot_example.cpp)
