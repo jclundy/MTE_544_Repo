@@ -122,16 +122,16 @@ void generate_graph(const nav_msgs::OccupancyGrid& msg, ros::Publisher publisher
   //ROS_INFO("before generating edges \n");
   //graph.print_graph_to_console();
   //ROS_INFO("after generating edges \n");
-  graph.generate_connections(0, 40);
+  graph.generate_connections(0, 30);
   //graph.print_graph_to_console();
   //std::string np1 = "graph1";
   //std::string np1 = "graph2";
-  graph.draw_in_rviz(publisher,10, 0, 1, 0, 1, "node_samples");
+  //graph.draw_in_rviz(publisher,10, 0, 1, 0, 1, "node_samples");
   ROS_INFO("before pruning edges \n");
   graph.print_graph_to_console();
   graph.prune_invalid_connections(msg, 0.3, 0);
   ROS_INFO("after pruning edges \n");
-  graph.print_graph_to_console();
+  //graph.print_graph_to_console();
   graph.draw_in_rviz(publisher,11, 0, 0, 1, 1, "node_samples");
 }
 //Callback function for the map
@@ -142,6 +142,23 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
         ROS_INFO("actual width %d, height %d, vs GRID_SIZE %i", msg.info.width, msg.info.height, GRID_SIZE);
         ROS_INFO("Inconsistent map sizes, dumping...");
         return;
+    }
+
+    // Reformat input map
+    for(int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
+        occ_grid[GRID_SIZE-1 - i/GRID_SIZE][i%GRID_SIZE] = msg.data[i];
+    }
+
+    // Random node placement
+    drawer.claim(visualization_msgs::Marker::POINTS);
+    srand(time(NULL));
+    for(int j = 0; j < NUM_SAMPLES; j) {
+        int x = rand()%GRID_SIZE;
+        int y = rand()%GRID_SIZE;
+        if(occ_grid[x][y] == 0 && graph.add_new_node(x, y)) {
+            drawer.add_point(x*0.1, y*0.1);
+            j++;
+        }
     }
 
     drawer.pub();
