@@ -48,7 +48,7 @@ double Graph::calculate_distance(Node start, Node end)
 	return std::sqrt(dx*dx + dy*dy);
 }
 
-void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotSize, double isOccupiedThreshold)
+void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map , double robotSize, double isEmptyValue)
 {
 	// Idea: iterate through list of nodes
 	// for each node, iterate through its list of edges
@@ -68,18 +68,25 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotS
 
 			// find corresponding edge in other node
 			int indexOfEdgeInEndNode = getIndexOfEdgeWithNode(endNode,i);
+			// skip if edge to given node is not found
+			if(indexOfEdgeInEndNode < 0)
+			{
+				ROS_INFO("edge %i not found in node %i",indexOfEdgeInEndNode, endNodeIndex);
+				nodeList[i].removeEdge(j);
+				continue;
+			} 
 			// check if the edge results in a collision
-			bool isCollisionFree = isConnectionValid(startNode, endNode, map, robotSize, isOccupiedThreshold);
+			
+			bool isCollisionFree = isConnectionValid(startNode, endNode, map, robotSize, isEmptyValue);
 			if(isCollisionFree)
 			{
 				// mark edge as validated
 				nodeList[i].edgeList[j].validated = true;
-				// skip if edge to given node is not found
-				if(indexOfEdgeInEndNode < 0) continue;
 				// mark corresponding edge in other node as validated
 				nodeList[endNodeIndex].edgeList[indexOfEdgeInEndNode].validated = true;
 			} else {
 				// remove edges from both start and end nodes
+				ROS_INFO("Removing Invalid Connection %i, %i", i, endNodeIndex);
 				nodeList[i].removeEdge(j);
 				nodeList[endNodeIndex].removeEdge(indexOfEdgeInEndNode);
 			}
@@ -104,7 +111,7 @@ int Graph::convertPositionToGridIndex(double position, double mapLowerLimit, dou
 	return int((position - mapLowerLimit)/resolution);
 }
 
-bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyGrid map, double robotSize, double isOccupiedThreshold)
+bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyGrid& map, double robotSize, double isEmptyValue)
 {
 	// Determining if connection valid:
 	// 1. map start and end node x-y position to map x-y indices
@@ -123,11 +130,11 @@ bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyG
 	double yMapStart = map.info.origin.position.y;
 	double mapResolution = map.info.resolution;
 
-	int x0 = convertPositionToGridIndex(startNode.x,xMapStart,mapResolution);
-	int y0 = convertPositionToGridIndex(startNode.y,yMapStart,mapResolution);
+	int x0 = int(startNode.x);
+	int y0 = int(startNode.y);
 
-	int x1 = convertPositionToGridIndex(endNode.x,xMapStart,mapResolution);
-	int y1 = convertPositionToGridIndex(endNode.y,yMapStart,mapResolution);
+	int x1 = int(endNode.x);
+	int y1 = int(endNode.y);
 
 	std::vector<int> xTileIndices;
 	std::vector<int> yTileIndices;
@@ -138,7 +145,7 @@ bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyG
 	int padding = 0;
 	bool checkVertical = 0;
 	bool checkHorizontal = 0;
-	if(robotSize > mapResolution)
+	/*if(robotSize > mapResolution)
 	{
 		// need to check additional tiles
 		int ratio = robotSize/mapResolution;
@@ -157,29 +164,38 @@ bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyG
 			// edge is roughly vertical, perform check on tiles to the left and right of center tile
 			checkHorizontal = 1;
 		}
-	}
+	}*/
 	for(int i = 0; i < numberOfTiles; i++)
 	{
 		int xIndex = xTileIndices[i];
 		int yIndex = yTileIndices[i];
-		int mapDataIndex = xIndex + yIndex / mapResolution;
-
+		int mapDataIndex = xIndex + yIndex * map.info.width;
+		if(map.data[mapDataIndex] > isEmptyValue)
+		{
+			ROS_INFO("Invalid Connection %i, %i, with value %d", startNode.index, endNode.index, map.data[mapDataIndex]);
+			return false;
+		}
 		// iterate through tiles adjacent to
-		for(int j = -padding; j<=padding; j++)
+		/*for(int j = -padding; j<=padding; j++)
 		{
 			// calculate index of tiles avbove/below
 			int modifiedXIndex = xIndex + j * checkHorizontal;
 			int modifiedYIndex = yIndex + j * checkVertical;
 			int mapDataIndex = modifiedXIndex + modifiedYIndex * 100;  //TODO THIS SHOULD BE PASSED IN
 			// skip check if index is out of bounds
-			if(mapDataIndex > map.data.size() - 1) continue;
+			int size = map.data.size();
+			if(mapDataIndex > size - 1)
+			{
+				ROS_INFO("mapDataIndex %i out of bounds %i",mapDataIndex, size);
+				continue;
+			}
 
 			// if the value at mapDataIndex is occupied, there is a collision
-			if(map.data[mapDataIndex] >= isOccupiedThreshold)
+			if(map.data[mapDataIndex] >= isEmptyValue)
 			{
 				return false;
 			}
-		}
+		}*/
 	}
 	// no obstacles were detected along the given edge
 	return true;
@@ -234,11 +250,26 @@ bool Graph::add_new_node(int x, int y) {
     return true;
 }
 
-
-void Graph::draw_in_rviz(ros::Publisher& marker_pub)
+void Graph::draw_in_rviz(ros::Publisher& marker_pub, int lineId, double r, double g, double b, double a, std::string ns)
 {
 	//publish points to rviz
-	int id = 0;
+	visualization_msgs::Marker lines;
+	lines.header.frame_id = "/map";
+	lines.id = lineId; //each curve must have a unique id or you will overwrite an old ones
+	lines.type = visualization_msgs::Marker::LINE_LIST;
+	lines.action = visualization_msgs::Marker::ADD;
+	lines.ns = ns;
+	lines.scale.x = 0.05;
+	lines.scale.y = 0.05;
+	lines.color.r = r;
+	lines.color.g = g;
+	lines.color.b = b;
+	lines.color.a = a;
+	lines.pose.orientation.z = -0.7071; //to match amcl map
+    lines.pose.orientation.w = 0.7071;
+    lines.pose.position.x = 0;
+    lines.pose.position.y = 10;
+    
     for (int i = 0; i < nodeList.size(); i++)
     {
       for(int j = 0; j < nodeList[i].edgeList.size(); j++)
@@ -248,42 +279,18 @@ void Graph::draw_in_rviz(ros::Publisher& marker_pub)
       	double y0 = nodeList[i].y;      	
       	double x1 = nodeList[endNodeIndex].x;
       	double y1 = nodeList[endNodeIndex].y;
-      	draw_line(id, x0, y0, x1, y1, marker_pub);
-      	id++;
+      	geometry_msgs::Point p0, p1;
+		p0.x = x0*0.1;
+		p0.y = y0*0.1;
+		p0.z = 0; //not used
+		p1.x = x1 * 0.1;
+		p1.y = y1 * 0.1;
+		p1.z = 0;
+      	lines.points.push_back(p0);
+		lines.points.push_back(p1);
       }
     }
-}
-
-void Graph::draw_line(int lineId, double x0, double y0, double x1, double y1, ros::Publisher& marker_pub)
-{
-	visualization_msgs::Marker lines;
-	lines.header.frame_id = "/map";
-	lines.id = lineId; //each curve must have a unique id or you will overwrite an old ones
-	lines.type = visualization_msgs::Marker::LINE_LIST;
-	lines.action = visualization_msgs::Marker::ADD;
-	lines.ns = "curves";
-	lines.scale.x = 0.05;
-	lines.scale.y = 0.05;
-	lines.color.r = 1.0;
-	lines.color.b = 0.0;
-	lines.color.a = 1.0;
-	lines.pose.orientation.z = -0.7071; //to match amcl map
-    lines.pose.orientation.w = 0.7071;
-    lines.pose.position.x = -1;
-    lines.pose.position.y = 5;
-    geometry_msgs::Point p0, p1;
-	p0.x = x0*0.1;
-	p0.y = y0*0.1;
-	p0.z = 0; //not used
-	p1.x = x1 * 0.1;
-	p1.y = y1 * 0.1;
-	p1.z = 0;
-
-	lines.points.push_back(p0);
-	lines.points.push_back(p1);
-
-	//publish new curve
-	marker_pub.publish(lines);
+    marker_pub.publish(lines);
 }
 
 void Graph::print_graph_to_console()
@@ -294,9 +301,9 @@ void Graph::print_graph_to_console()
 		ROS_INFO("X %f, Y %f \n", nodeList[i].x, nodeList[i].y);
 		int size = nodeList[i].edgeList.size();
 		ROS_INFO("Number of edges: %i \n", size);
-		for(int j = 0; j < size; j++)
+		/*for(int j = 0; j < size; j++)
 		{
 			ROS_INFO("Edge to Node %i, cost %f \n", nodeList[i].edgeList[j].endNodeIndex, nodeList[i].edgeList[j].cost);
-		}
+		}*/
 	}
 }

@@ -9,6 +9,7 @@
 #include <visualization_msgs/Marker.h>
 #include <math.h>
 #include <vector>
+#include <cstdlib>
 
 class Graph
 {
@@ -23,11 +24,11 @@ public:
 
 	void generate_connections(int connectionsPerNode, double maxDistance);
 
-	void prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotSize, double isOccupiedThreshold);
+	void prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotSize, double isEmptyValue);
 
     bool add_new_node(int x, int y);
 
-    void draw_in_rviz(ros::Publisher& publisher);
+    void draw_in_rviz(ros::Publisher& marker_pub, int lineId, double r, double g, double b, double a, std::string ns);
 
     void print_graph_to_console();
 
@@ -38,11 +39,9 @@ private:
 
 	int convertPositionToGridIndex(double position, double mapLowerLimit, double resolution);
 
-	bool isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyGrid map, double robotSize, double isOccupiedThreshold);
+	bool isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyGrid& map, double robotSize, double isEmptyValue);
 
 	void bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::vector<int>& y);
-
-	void draw_line(int lineId, double x0, double y0, double x1, double y1, ros::Publisher& marker_pub);
 };
 
 #endif

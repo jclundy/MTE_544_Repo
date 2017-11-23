@@ -29,7 +29,7 @@
 ros::Publisher marker_pub;
 RViz_Draw drawer;
 #define GRID_SIZE 100
-#define NUM_SAMPLES 10
+#define NUM_SAMPLES 100
 #define TAGID 0
 #define PI 3.14159265
 #define SIMULATION
@@ -117,34 +117,38 @@ void drawCurve(int k)
    drawer.pub();
    drawer.release();
 }
-
+void generate_graph(const nav_msgs::OccupancyGrid& msg, ros::Publisher publisher)
+{
+  //ROS_INFO("before generating edges \n");
+  //graph.print_graph_to_console();
+  //ROS_INFO("after generating edges \n");
+  graph.generate_connections(0, 40);
+  //graph.print_graph_to_console();
+  //std::string np1 = "graph1";
+  //std::string np1 = "graph2";
+  graph.draw_in_rviz(publisher,10, 0, 1, 0, 1, "node_samples");
+  ROS_INFO("before pruning edges \n");
+  graph.print_graph_to_console();
+  graph.prune_invalid_connections(msg, 0.3, 0);
+  ROS_INFO("after pruning edges \n");
+  graph.print_graph_to_console();
+  graph.draw_in_rviz(publisher,11, 0, 0, 1, 1, "node_samples");
+}
 //Callback function for the map
 void map_callback(const nav_msgs::OccupancyGrid& msg)
 {
     // Assuming 100x100 map input, will complain if that doesn't match
     if(msg.info.width != GRID_SIZE || msg.info.height != GRID_SIZE) {
+        ROS_INFO("actual width %d, height %d, vs GRID_SIZE %i", msg.info.width, msg.info.height, GRID_SIZE);
         ROS_INFO("Inconsistent map sizes, dumping...");
         return;
     }
 
-    // Reformat input map
-    for(int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
-        occ_grid[GRID_SIZE-1 - i/GRID_SIZE][i%GRID_SIZE] = msg.data[i];
-    }
-
-    // Random node placement
-    drawer.claim(visualization_msgs::Marker::POINTS);
-    srand(time(NULL));
-    for(int j = 0; j < NUM_SAMPLES; j) {
-        int x = rand()%GRID_SIZE;
-        int y = rand()%GRID_SIZE;
-        if(occ_grid[x][y] == 0 && graph.add_new_node(x, y)) {
-            drawer.add_point(x*0.1, y*0.1);
-            j++;
-        }
-    }
     drawer.pub();
     drawer.release();
+
+    // Publish sampling nodes to RVIZ
+    generate_graph(msg, marker_pub);
 }
 
 float set_speed(float target_x, float target_y, float prev_theta_error, ros::Publisher velocity_publisher)
@@ -388,7 +392,6 @@ int main(int argc, char **argv)
     //Setup topics to Publish from this node
     ros::Publisher velocity_publisher = n.advertise<geometry_msgs::Twist>("/cmd_vel_mux/input/navi", 1);
     marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 1, true);
-
     
     ROS_INFO("----1----");
 
@@ -445,25 +448,6 @@ int main(int argc, char **argv)
     {
     	loop_rate.sleep(); //Maintain the loop rate
     	ros::spinOnce();   //Check for new messages
-
-      if(!graph_generated && graph.nodeList.size() == NUM_SAMPLES)
-      {
-        graph_generated = true;
-      }
-
-      if(!graph_drawn && graph_generated)
-      {
-        ROS_INFO("before generating edges \n");
-        graph.print_graph_to_console();
-        ROS_INFO("after generating edges \n");
-        graph.generate_connections(0, 100);
-        graph.print_graph_to_console();
-        graph.draw_in_rviz(marker_pub);
-        graph_drawn = true;
-      }
-
-
-      graph.draw_in_rviz(marker_pub);
 
       if (wpt_ind >= num_waypoints)
       {
