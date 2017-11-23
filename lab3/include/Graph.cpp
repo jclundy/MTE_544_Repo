@@ -71,7 +71,7 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map , double robot
 			// skip if edge to given node is not found
 			if(indexOfEdgeInEndNode < 0)
 			{
-				ROS_INFO("edge %i not found in node %i",indexOfEdgeInEndNode, endNodeIndex);
+				//ROS_INFO("edge %i not found in node %i",indexOfEdgeInEndNode, endNodeIndex);
 				nodeList[i].removeEdge(j);
 				continue;
 			} 
@@ -86,7 +86,7 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map , double robot
 				nodeList[endNodeIndex].edgeList[indexOfEdgeInEndNode].validated = true;
 			} else {
 				// remove edges from both start and end nodes
-				ROS_INFO("Removing Invalid Connection %i, %i", i, endNodeIndex);
+				//ROS_INFO("Removing Invalid Connection %i, %i", i, endNodeIndex);
 				nodeList[i].removeEdge(j);
 				nodeList[endNodeIndex].removeEdge(indexOfEdgeInEndNode);
 			}
@@ -240,12 +240,13 @@ void Graph::bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::
 
 
 bool Graph::add_new_node(int x, int y) {
-    for(int i = 0; i<endIndex; i++) {
+	int i;
+    for(i = 0; i<nodeList.size(); i++) {
         if(nodeList[i].x == x && nodeList[i].y == y)
             return false;
     }
 
-    Node new_node = Node(endIndex, x, y);
+    Node new_node = Node(i, x, y);
     nodeList.push_back(new_node);
     return true;
 }
@@ -297,7 +298,7 @@ void Graph::print_graph_to_console()
 {
 	for(int i = 0; i < nodeList.size(); i++)
 	{
-		ROS_INFO("Node %i \n", i);
+		ROS_INFO("Node %i ", nodeList[i].index);
 		ROS_INFO("X %f, Y %f \n", nodeList[i].x, nodeList[i].y);
 		int size = nodeList[i].edgeList.size();
 		ROS_INFO("Number of edges: %i \n", size);
