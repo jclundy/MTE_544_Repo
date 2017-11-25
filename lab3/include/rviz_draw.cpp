@@ -14,8 +14,8 @@ RViz_Draw::RViz_Draw(ros::NodeHandle n)
     objs.action = visualization_msgs::Marker::ADD;
     objs.pose.orientation.z = -0.7071; //to match amcl map
     objs.pose.orientation.w = 0.7071;
-    objs.pose.position.x = 0;
-    objs.pose.position.y = 10;
+    objs.pose.position.x = -5;
+    objs.pose.position.y = 5;
     objs.id = 0;
 
     //objs formatting
@@ -33,6 +33,15 @@ void RViz_Draw::add_point(double x, double y)
     geometry_msgs::Point p;
     p.x = x;
     p.y = y;
+    p.z = 0;
+    objs.points.push_back(p);
+}
+
+void RViz_Draw::add_point_scale(double x, double y)
+{
+    geometry_msgs::Point p;
+    p.x = x*0.1;
+    p.y = y*0.1;
     p.z = 0;
     objs.points.push_back(p);
 }

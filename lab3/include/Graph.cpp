@@ -74,9 +74,9 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map , double robot
 				//ROS_INFO("edge %i not found in node %i",indexOfEdgeInEndNode, endNodeIndex);
 				nodeList[i].removeEdge(j);
 				continue;
-			} 
+			}
 			// check if the edge results in a collision
-			
+
 			bool isCollisionFree = isConnectionValid(startNode, endNode, map, robotSize, isEmptyValue);
 			if(isCollisionFree)
 			{
@@ -251,36 +251,20 @@ bool Graph::add_new_node(int x, int y) {
     return true;
 }
 
-void Graph::draw_in_rviz(ros::Publisher& marker_pub, int lineId, double r, double g, double b, double a, std::string ns)
+void Graph::draw_in_rviz(RViz_Draw *drawer)
 {
-	//publish points to rviz
-	visualization_msgs::Marker lines;
-	lines.header.frame_id = "/map";
-	lines.id = lineId; //each curve must have a unique id or you will overwrite an old ones
-	lines.type = visualization_msgs::Marker::LINE_LIST;
-	lines.action = visualization_msgs::Marker::ADD;
-	lines.ns = ns;
-	lines.scale.x = 0.05;
-	lines.scale.y = 0.05;
-	lines.color.r = r;
-	lines.color.g = g;
-	lines.color.b = b;
-	lines.color.a = a;
-	lines.pose.orientation.z = -0.7071; //to match amcl map
-    lines.pose.orientation.w = 0.7071;
-    lines.pose.position.x = 0;
-    lines.pose.position.y = 10;
-    
+    drawer->claim(visualization_msgs::Marker::LINE_STRIP);
+    drawer->update_color(0, 0, 1, 1);
     for (int i = 0; i < nodeList.size(); i++)
     {
       for(int j = 0; j < nodeList[i].edgeList.size(); j++)
       {
       	int endNodeIndex = nodeList[i].edgeList[j].endNodeIndex;
 		double x0 = nodeList[i].x;
-      	double y0 = nodeList[i].y;      	
+      	double y0 = nodeList[i].y;
       	double x1 = nodeList[endNodeIndex].x;
       	double y1 = nodeList[endNodeIndex].y;
-      	geometry_msgs::Point p0, p1;
+      	/*geometry_msgs::Point p0, p1;
 		p0.x = x0*0.1;
 		p0.y = y0*0.1;
 		p0.z = 0; //not used
@@ -289,9 +273,15 @@ void Graph::draw_in_rviz(ros::Publisher& marker_pub, int lineId, double r, doubl
 		p1.z = 0;
       	lines.points.push_back(p0);
 		lines.points.push_back(p1);
+            */
+        drawer->add_point_scale(x0, y0);
+        drawer->add_point_scale(x1, y1);
       }
     }
-    marker_pub.publish(lines);
+    drawer->pub();
+    drawer->release();
+
+
 }
 
 void Graph::print_graph_to_console()

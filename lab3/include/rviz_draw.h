@@ -11,6 +11,7 @@ public:
     RViz_Draw();
     RViz_Draw(ros::NodeHandle n);
     void add_point(double x, double y);
+    void add_point_scale(double x, double y);
     void update_scale(double scalex, double scaley);
     void update_color(double colorr, double colorg, double colorb, double colora);
 
