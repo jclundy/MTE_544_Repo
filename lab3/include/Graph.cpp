@@ -172,7 +172,7 @@ bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyG
 		int mapDataIndex = xIndex + yIndex * map.info.width;
 		if(map.data[mapDataIndex] > isEmptyValue)
 		{
-			ROS_INFO("Invalid Connection %i, %i, with value %d", startNode.index, endNode.index, map.data[mapDataIndex]);
+			//ROS_INFO("Invalid Connection %i, %i, with value %d", startNode.index, endNode.index, map.data[mapDataIndex]);
 			return false;
 		}
 		// iterate through tiles adjacent to
@@ -298,10 +298,10 @@ void Graph::print_graph_to_console()
 {
 	for(int i = 0; i < nodeList.size(); i++)
 	{
-		ROS_INFO("Node %i ", nodeList[i].index);
-		ROS_INFO("X %f, Y %f \n", nodeList[i].x, nodeList[i].y);
+		//ROS_INFO("Node %i ", nodeList[i].index);
+		//ROS_INFO("X %f, Y %f \n", nodeList[i].x, nodeList[i].y);
 		int size = nodeList[i].edgeList.size();
-		ROS_INFO("Number of edges: %i \n", size);
+		//ROS_INFO("Number of edges: %i \n", size);
 		/*for(int j = 0; j < size; j++)
 		{
 			ROS_INFO("Edge to Node %i, cost %f \n", nodeList[i].edgeList[j].endNodeIndex, nodeList[i].edgeList[j].cost);

@@ -42,6 +42,7 @@ float omega;
 
 double occ_grid[GRID_SIZE][GRID_SIZE];
 Graph graph;
+bool graph_generated = false;
 
 #ifdef SIMULATION
 //Callback function for the Position topic (SIMULATION)
@@ -117,6 +118,7 @@ void drawCurve(int k)
    drawer.pub();
    drawer.release();
 }
+
 void generate_graph(const nav_msgs::OccupancyGrid& msg, ros::Publisher publisher)
 {
   //ROS_INFO("before generating edges \n");
@@ -127,12 +129,13 @@ void generate_graph(const nav_msgs::OccupancyGrid& msg, ros::Publisher publisher
   //std::string np1 = "graph1";
   //std::string np1 = "graph2";
   //graph.draw_in_rviz(publisher,10, 0, 1, 0, 1, "node_samples");
-  ROS_INFO("before pruning edges \n");
+  //ROS_INFO("before pruning edges \n");
   graph.print_graph_to_console();
   graph.prune_invalid_connections(msg, 0.3, 0);
-  ROS_INFO("after pruning edges \n");
+  //ROS_INFO("after pruning edges \n");
   //graph.print_graph_to_console();
   graph.draw_in_rviz(publisher,11, 0, 0, 1, 1, "node_samples");
+  graph_generated = true;
 }
 //Callback function for the map
 void map_callback(const nav_msgs::OccupancyGrid& msg)
@@ -171,11 +174,14 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
 float set_speed(float target_x, float target_y, float prev_theta_error, ros::Publisher velocity_publisher)
 {
     float top_speed = 1;
-    float k = 1;
-    float kp = 0.5;
+    float kp_theta = 1;
+    float kd_theta = 0.5;
+    float kp_v = 1;
     //Velocity control variable
     float theta_ref = atan2(target_y - ips_y, target_x - ips_x);
     float theta_error = theta_ref - ips_yaw;
+    float dist_error = sqrt((target_y - ips_y)*(target_y - ips_y) +
+                            (target_x - ips_x)*(target_x - ips_x));
 
     if (theta_error > PI)
     {
@@ -188,9 +194,16 @@ float set_speed(float target_x, float target_y, float prev_theta_error, ros::Pub
 
     geometry_msgs::Twist vel;
 
+
+
     float cos_error = cos (theta_error);
-    float forward_v = cos_error * cos_error * cos_error * top_speed;
-    float omega = k * theta_error + kp * (theta_error - prev_theta_error);
+    float forward_v = cos_error * cos_error * cos_error * kp_v * dist_error;
+    if (forward_v > top_speed)
+        forward_v = top_speed;
+    if (forward_v < -top_speed)
+        forward_v = -top_speed;
+
+    float omega = kp_theta * theta_error + kd_theta * (theta_error - prev_theta_error);
 
     vel.linear.x = forward_v; // set linear speed
     vel.angular.z = omega; // set angular speed
@@ -453,14 +466,60 @@ int main(int argc, char **argv)
     waypoints.push_back(Node(3,-10,10));
     waypoints.push_back(Node(4,-10,-10));
 */
-     uint wpt_ind = 0;
-     bool graph_generated = false;
-     bool graph_drawn = false;
+    uint wpt_ind = 0;
 
-    loop_rate.sleep();
-    ros::spinOnce();  
+    bool graph_drawn = false;
+    while (ros::ok() && !graph_generated)
+    {   
+        loop_rate.sleep();
+        ros::spinOnce();  
+        ROS_INFO("waiting for graph...");
+    }
 
-    /*
+    std::vector<Node*> nodeList;
+    nodeList.reserve(graph.nodeList.size());
+    for(int i = 0; i<graph.nodeList.size(); i++)
+    {
+        nodeList.push_back(&graph.nodeList[i]);
+    }
+
+    std::vector<Node*> waypoints;
+    //astar(nodeList, waypoints, 0, 25);
+
+    Node node0(0,0,0); 
+    Node node1(1, 10, -10); 
+    Node node2(2, 10, 10); 
+    Node node3(3, -10, 10); 
+    Node node4(4, -10, -10); 
+
+    waypoints.push_back(&node0);
+    waypoints.push_back(&node1);
+    waypoints.push_back(&node2);
+    waypoints.push_back(&node3);
+    waypoints.push_back(&node4);
+
+
+    uint num_waypoints = waypoints.size();
+   
+
+    drawer.claim(visualization_msgs::Marker::LINE_STRIP);
+    drawer.update_color(1,1,1,1);
+    //generate curve points
+    for(int i = 0; i < num_waypoints; i++) {
+       //geometry_msgs::Point p;
+       //p.x = x;
+       //p.y = y;
+       //p.z = 0; //not used
+       //lines.points.push_back(p);
+       drawer.add_point(waypoints[i]->x, waypoints[i]->y);
+    }
+
+   //publish new curve
+   //marker_pub.publish(lines);
+   drawer.pub();
+   drawer.release();
+
+    float theta_error = 0;
     while (ros::ok())
     {
     	loop_rate.sleep(); //Maintain the loop rate
@@ -470,16 +529,17 @@ int main(int argc, char **argv)
       {
         wpt_ind = 0;
       }
-      float error_mag = get_error_magnitude(waypoints[wpt_ind].x, waypoints[wpt_ind].y);
-      theta_error = set_speed(waypoints[wpt_ind].x, waypoints[wpt_ind].y, theta_error, velocity_publisher);
+      float error_mag = get_error_magnitude(waypoints[wpt_ind]->x, waypoints[wpt_ind]->y);
+      theta_error = set_speed(waypoints[wpt_ind]->x, waypoints[wpt_ind]->y, theta_error, velocity_publisher);
       //ROS_INFO("theta_error = %f,   x,y = %f \t %f    dist=%f", theta_error, ips_x, ips_y, error_mag);
 
-      if (error_mag < 0.05)
+      if (error_mag < 0.08)
       {
         wpt_ind++;
       }
     }
-    */
+
+    /*
     ROS_INFO("----3----");
 
     Node node0(0, 3, 4); 
@@ -526,7 +586,7 @@ int main(int argc, char **argv)
 
     std::vector<Node*> spath;
     astar(nodeList, spath, 0, 5);
-
+*/
 
     return 0;
 }
