@@ -29,10 +29,11 @@
 ros::Publisher marker_pub;
 RViz_Draw drawer;
 #define GRID_SIZE 100
-#define NUM_SAMPLES 100
+#define NUM_SAMPLES 10
 #define TAGID 0
 #define PI 3.14159265
 #define SIMULATION
+#define DEBUG
 
 float ips_x = 0;
 float ips_y = 0;
@@ -134,6 +135,21 @@ void generate_graph(const nav_msgs::OccupancyGrid& msg, ros::Publisher publisher
   //graph.print_graph_to_console();
   graph.draw_in_rviz(publisher,11, 0, 0, 1, 1, "node_samples");
 }
+
+void print_occupancy_grid(double og[][GRID_SIZE], int max_x, int max_y)
+{
+    for(int i = 0; i < max_x; i++)
+    {
+        for(int j = 0; j < max_y; j++)
+        {
+            double prob = og[i][j];
+            int val = int(prob / 100);
+            int abs_val = abs(val);
+            std::cout << val;
+        }
+        std::cout << ';' << '\n';
+    }
+}
 //Callback function for the map
 void map_callback(const nav_msgs::OccupancyGrid& msg)
 {
@@ -148,6 +164,10 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
     for(int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
         occ_grid[GRID_SIZE-1 - i/GRID_SIZE][i%GRID_SIZE] = msg.data[i];
     }
+
+    #ifdef DEBUG
+        print_occupancy_grid(occ_grid, GRID_SIZE, GRID_SIZE);
+    #endif
 
     // Random node placement
     drawer.claim(visualization_msgs::Marker::POINTS);

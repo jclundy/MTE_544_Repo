@@ -10,7 +10,8 @@ public:
 	bool validated;
 	
 	Edge(double costValue, int endNodeIndex);
-	void validate(); 
+	void validate();
+	Edge (const Edge &obj);
 };
 
 #endif

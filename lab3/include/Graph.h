@@ -32,6 +32,8 @@ public:
 
     void print_graph_to_console();
 
+    double calculate_distance(int i, int j);
+
 private:
 	double calculate_distance(Node start, Node end);
 

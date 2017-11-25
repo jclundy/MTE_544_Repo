@@ -21,6 +21,7 @@ public:
 	bool isConnectedToNodeAtIndex(int nodeIndex);
 
 	Node(int indexValue, double xValue, double yValue);
+	Node(const Node &obj);
 	
 };
 

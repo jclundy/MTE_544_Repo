@@ -12,3 +12,9 @@ void Edge::validate()
 	//TODO implement this validation function
 	// requires grid map 
 }
+Edge::Edge (const Edge &obj)
+{
+	validated = obj.validated;
+	cost = obj.cost;
+	endNodeIndex = obj.endNodeIndex;
+}

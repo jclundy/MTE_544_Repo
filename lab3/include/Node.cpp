@@ -7,6 +7,14 @@ Node::Node(int indexValue, double xValue, double yValue)
 	
 }
 
+Node::Node(const Node &obj)
+{
+	index = obj.index;
+	x = obj.x;
+	y = obj.y;
+	edgeList = obj.edgeList;
+}
+
 void Node::addEdge(Edge edge)
 {
 	edgeList.push_back(edge);

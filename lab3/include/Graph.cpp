@@ -47,6 +47,12 @@ double Graph::calculate_distance(Node start, Node end)
 	double dy = end.y - start.y;
 	return std::sqrt(dx*dx + dy*dy);
 }
+double Graph::calculate_distance(int i, int j)
+{
+	double dx = nodeList[i].x - nodeList[j].x;
+	double dy = nodeList[i].y - nodeList[j].y;
+	return std::sqrt(dx*dx + dy*dy);
+}
 
 void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map , double robotSize, double isEmptyValue)
 {
