@@ -285,7 +285,14 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
     ROS_INFO("Starting While loop");
     while(!done){
         display_openset_closedset(open_set, closed_set);
+<<<<<<< Updated upstream
         //code for if open set is empty, return an empty closed set
+=======
+        //code for if open set is empty, return an empty closed set 
+        if(open_set.size() == 0){
+            return;
+        }
+>>>>>>> Stashed changes
 
         //if open set not empty
         //iterate through array to find best node and put into closed set
@@ -330,7 +337,6 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
                 ROS_INFO("checking if node is in closed set");
                 //check if node is in closed set
                 bool found = 0;
-                int k = 0;
                 for(int k = 0; k < closed_set.size() && !found; k++){
                     if(closed_set[k]->index == neighbour->index){
                         found = 1;
@@ -352,19 +358,28 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
                 ROS_INFO("check if node is in open set and the current distance is lower than previous one");
                 //check if node is in open set and the current distance is lower than previous one
                 for(int m = 0; m < open_set.size() && !found; m++){
+<<<<<<< Updated upstream
                     if(open_set[k]->index == neighbour->index){
                         found = 1;
                         if(dcur < open_set[k]->current_cost){
                             open_set[k]->back_pointer_index = best_node->index;
                             open_set[k]->lower_bound_cost = dtogo + dcur;
                             open_set[k]->current_cost = dcur;
+=======
+                    if(open_set[m]->index == neighbour->index){
+                        found = 1; 
+                        if(dcur < open_set[m]->current_cost){
+                            open_set[m]->back_pointer_index = best_node->index;
+                            open_set[m]->lower_bound_cost = dtogo + dcur;
+                            open_set[m]->current_cost = dcur;
+>>>>>>> Stashed changes
                         }
                     }
                 }
                 if(!found){
                     ROS_INFO("was not found, add to open set");
                     //add endNodeIndex to openSet
-                    for(int i=0;i<nodes.size();i++){
+                    for(int i = 0; i < nodes.size(); i++){
                         if (neighbour->index == nodes[i]->index){
                             neighbour->back_pointer_index = best_node->index;
                             neighbour->lower_bound_cost = dtogo + dcur;
@@ -484,6 +499,7 @@ int main(int argc, char **argv)
     }
 
     std::vector<Node*> waypoints;
+<<<<<<< Updated upstream
     //astar(nodeList, waypoints, 0, 25);
 
     Node node0(0,0,0);
@@ -491,13 +507,22 @@ int main(int argc, char **argv)
     Node node2(2, 10, 10);
     Node node3(3, -10, 10);
     Node node4(4, -10, -10);
+=======
+    astar(nodeList, waypoints, 0, 25);
+/*
+    Node node0(0,0,0); 
+    Node node1(1, 10, -10); 
+    Node node2(2, 10, 10); 
+    Node node3(3, -10, 10); 
+    Node node4(4, -10, -10); 
+>>>>>>> Stashed changes
 
     waypoints.push_back(&node0);
     waypoints.push_back(&node1);
     waypoints.push_back(&node2);
     waypoints.push_back(&node3);
     waypoints.push_back(&node4);
-
+*/
 
     uint num_waypoints = waypoints.size();
 
