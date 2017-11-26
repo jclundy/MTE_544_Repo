@@ -5,17 +5,17 @@ RViz_Draw::RViz_Draw()
     claimed = true;
 }
 
-RViz_Draw::RViz_Draw(ros::NodeHandle n)
+RViz_Draw::RViz_Draw(ros::NodeHandle n, std::string marker_topic, bool latch)
 {
-    marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 1, true);
+    marker_pub = n.advertise<visualization_msgs::Marker>(marker_topic, 1, latch);
     objs.header.frame_id ="/map";
     objs.header.stamp = ros::Time::now();
     objs.ns = "lab3";
     objs.action = visualization_msgs::Marker::ADD;
     objs.pose.orientation.z = -0.7071; //to match amcl map
     objs.pose.orientation.w = 0.7071;
-    objs.pose.position.x = 0;
-    objs.pose.position.y = 10;
+    objs.pose.position.x = -5;
+    objs.pose.position.y = 5;
     objs.id = 0;
 
     //objs formatting
@@ -28,13 +28,36 @@ RViz_Draw::RViz_Draw(ros::NodeHandle n)
     claimed = false;
 }
 
-void RViz_Draw::add_point(double x, double y)
+void RViz_Draw::update_map_details(float res, float originx, float originy)
+{
+   objs.pose.position.x = originx;
+   objs.pose.position.y = originy+10;
+   resolution = res;
+}
+
+//returns the point index of the new point
+uint RViz_Draw::add_point(double x, double y)
 {
     geometry_msgs::Point p;
     p.x = x;
     p.y = y;
     p.z = 0;
     objs.points.push_back(p);
+    return objs.points.size() - 1;
+}
+
+void RViz_Draw::move_point(int point_id, double x, double y)
+{
+    geometry_msgs::Point p;
+    p.x = x;
+    p.y = y;
+    p.z = 0;
+    objs.points[point_id] = p;
+}
+
+void RViz_Draw::add_point_scale(double x, double y)
+{
+    add_point(x*resolution, y*resolution);
 }
 
 void RViz_Draw::update_scale(double scalex, double scaley)

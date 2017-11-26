@@ -4,6 +4,7 @@
 #include "Graph.h"
 #include "Edge.h"
 #include "Node.h"
+#include "rviz_draw.h"
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <visualization_msgs/Marker.h>
@@ -28,7 +29,7 @@ public:
 
     bool add_new_node(int x, int y);
 
-    void draw_in_rviz(ros::Publisher& marker_pub, int lineId, double r, double g, double b, double a, std::string ns);
+    void draw_in_rviz(RViz_Draw *drawer);
 
     void print_graph_to_console();
 

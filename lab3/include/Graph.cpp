@@ -43,8 +43,8 @@ void Graph::generate_connections(int connectionsPerNode, double maxDistance)
 
 double Graph::calculate_distance(Node start, Node end)
 {
-	double dx = end.x - start.x;
-	double dy = end.y - start.y;
+	double dx = end.xindex - start.xindex;
+	double dy = end.yindex - start.yindex;
 	return std::sqrt(dx*dx + dy*dy);
 }
 double Graph::calculate_distance(int i, int j)
@@ -80,9 +80,9 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map , double robot
 				//ROS_INFO("edge %i not found in node %i",indexOfEdgeInEndNode, endNodeIndex);
 				nodeList[i].removeEdge(j);
 				continue;
-			} 
+			}
 			// check if the edge results in a collision
-			
+
 			bool isCollisionFree = isConnectionValid(startNode, endNode, map, robotSize, isEmptyValue);
 			if(isCollisionFree)
 			{
@@ -136,11 +136,11 @@ bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyG
 	double yMapStart = map.info.origin.position.y;
 	double mapResolution = map.info.resolution;
 
-	int x0 = int(startNode.x);
-	int y0 = int(startNode.y);
+	int x0 = int(startNode.xindex);
+	int y0 = int(startNode.yindex);
 
-	int x1 = int(endNode.x);
-	int y1 = int(endNode.y);
+	int x1 = int(endNode.xindex);
+	int y1 = int(endNode.yindex);
 
 	std::vector<int> xTileIndices;
 	std::vector<int> yTileIndices;
@@ -178,7 +178,7 @@ bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyG
 		int mapDataIndex = xIndex + yIndex * map.info.width;
 		if(map.data[mapDataIndex] > isEmptyValue)
 		{
-			ROS_INFO("Invalid Connection %i, %i, with value %d", startNode.index, endNode.index, map.data[mapDataIndex]);
+			//ROS_INFO("Invalid Connection %i, %i, with value %d", startNode.index, endNode.index, map.data[mapDataIndex]);
 			return false;
 		}
 		// iterate through tiles adjacent to
@@ -248,7 +248,7 @@ void Graph::bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::
 bool Graph::add_new_node(int x, int y) {
 	int i;
     for(i = 0; i<nodeList.size(); i++) {
-        if(nodeList[i].x == x && nodeList[i].y == y)
+        if(nodeList[i].xindex == x && nodeList[i].yindex == y)
             return false;
     }
 
@@ -257,36 +257,20 @@ bool Graph::add_new_node(int x, int y) {
     return true;
 }
 
-void Graph::draw_in_rviz(ros::Publisher& marker_pub, int lineId, double r, double g, double b, double a, std::string ns)
+void Graph::draw_in_rviz(RViz_Draw *drawer)
 {
-	//publish points to rviz
-	visualization_msgs::Marker lines;
-	lines.header.frame_id = "/map";
-	lines.id = lineId; //each curve must have a unique id or you will overwrite an old ones
-	lines.type = visualization_msgs::Marker::LINE_LIST;
-	lines.action = visualization_msgs::Marker::ADD;
-	lines.ns = ns;
-	lines.scale.x = 0.05;
-	lines.scale.y = 0.05;
-	lines.color.r = r;
-	lines.color.g = g;
-	lines.color.b = b;
-	lines.color.a = a;
-	lines.pose.orientation.z = -0.7071; //to match amcl map
-    lines.pose.orientation.w = 0.7071;
-    lines.pose.position.x = 0;
-    lines.pose.position.y = 10;
-    
+    drawer->claim(visualization_msgs::Marker::LINE_STRIP);
+    drawer->update_color(0, 0, 1, 1);
     for (int i = 0; i < nodeList.size(); i++)
     {
       for(int j = 0; j < nodeList[i].edgeList.size(); j++)
       {
       	int endNodeIndex = nodeList[i].edgeList[j].endNodeIndex;
-		double x0 = nodeList[i].x;
-      	double y0 = nodeList[i].y;      	
-      	double x1 = nodeList[endNodeIndex].x;
-      	double y1 = nodeList[endNodeIndex].y;
-      	geometry_msgs::Point p0, p1;
+		double x0 = nodeList[i].xindex;
+      	double y0 = nodeList[i].yindex;
+      	double x1 = nodeList[endNodeIndex].xindex;
+      	double y1 = nodeList[endNodeIndex].yindex;
+      	/*geometry_msgs::Point p0, p1;
 		p0.x = x0*0.1;
 		p0.y = y0*0.1;
 		p0.z = 0; //not used
@@ -295,19 +279,25 @@ void Graph::draw_in_rviz(ros::Publisher& marker_pub, int lineId, double r, doubl
 		p1.z = 0;
       	lines.points.push_back(p0);
 		lines.points.push_back(p1);
+            */
+        drawer->add_point_scale(x0, y0);
+        drawer->add_point_scale(x1, y1);
       }
     }
-    marker_pub.publish(lines);
+    drawer->pub();
+    drawer->release();
+
+
 }
 
 void Graph::print_graph_to_console()
 {
 	for(int i = 0; i < nodeList.size(); i++)
 	{
-		ROS_INFO("Node %i ", nodeList[i].index);
-		ROS_INFO("X %f, Y %f \n", nodeList[i].x, nodeList[i].y);
+		//ROS_INFO("Node %i ", nodeList[i].index);
+		//ROS_INFO("X %f, Y %f \n", nodeList[i].x, nodeList[i].y);
 		int size = nodeList[i].edgeList.size();
-		ROS_INFO("Number of edges: %i \n", size);
+		//ROS_INFO("Number of edges: %i \n", size);
 		/*for(int j = 0; j < size; j++)
 		{
 			ROS_INFO("Edge to Node %i, cost %f \n", nodeList[i].edgeList[j].endNodeIndex, nodeList[i].edgeList[j].cost);

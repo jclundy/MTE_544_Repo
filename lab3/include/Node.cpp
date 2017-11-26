@@ -1,10 +1,22 @@
 #include "Node.h"
-Node::Node(int indexValue, double xValue, double yValue)
+
+Node::Node()
 {
-	index = indexValue;
-	x = xValue;
-	y = yValue;
-	
+    index = -1;
+    xindex = 0;
+    yindex = 0;
+    xpos = 0;
+    ypos = 0;
+}
+
+Node::Node(int indexValue, int xValue, int yValue)
+{
+    index = indexValue;
+	xindex = xValue;
+	yindex = yValue;
+    xpos = convertToPos(xValue);
+    ypos = convertToPos(yValue);
+
 }
 
 Node::Node(const Node &obj)
@@ -22,8 +34,8 @@ void Node::addEdge(Edge edge)
 
 void Node::removeEdge(int edgeIndex)
 {
-	// order is not important, 
-	// so we overwrite the edge at 
+	// order is not important,
+	// so we overwrite the edge at
 	// edgeIndex with the last edge in the list
 	// then pop off the last node in the list
 	edgeList[edgeIndex] = edgeList.back();
@@ -40,5 +52,10 @@ bool Node::isConnectedToNodeAtIndex(int nodeIndex)
 		}
 	}
 	return false;
+}
+
+double Node::convertToPos(int a)
+{
+    return a/10.0; //TBD
 }
 
