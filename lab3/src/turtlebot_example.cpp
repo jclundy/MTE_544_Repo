@@ -137,7 +137,7 @@ void generate_graph(const nav_msgs::OccupancyGrid& msg, ros::Publisher publisher
   graph.prune_invalid_connections(msg, 0.3, 0);
   //ROS_INFO("after pruning edges \n");
   //graph.print_graph_to_console();
-  //graph.draw_in_rviz(&drawer);
+  graph.draw_in_rviz(&drawer);
   graph_generated = true;
 }
 
@@ -205,7 +205,7 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
     drawer.pub();
     drawer.release();
 
-    map_print(occ_grid);
+    //map_print(occ_grid);
 
     // Publish sampling nodes to RVIZ
     generate_graph(msg, marker_pub);
