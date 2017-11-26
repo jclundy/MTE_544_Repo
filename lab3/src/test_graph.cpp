@@ -233,9 +233,49 @@ bool test_graph_edge_generation(Graph &test_graph, double max_distance)
 	return test_passed;
 }
 
-bool test_edge_removal(Graph &test_graph)
+bool test_edge_removal()
 {
-	
+	ROS_INFO("Test edge removal");
+	int startIndex = 0;
+	int endIndex = 1;
+
+	Node start(0,0,startIndex);
+	Edge startEdge = Edge(1.41, endIndex);
+	start.addEdge(startEdge);
+	Node end(1, 1, endIndex);
+	Edge endEdge = Edge(1.41, startIndex);
+	end.addEdge(endEdge);
+
+	int endEdgeIndex = end.getIndexOfEdgeWithNode(startIndex);
+	int startEdgeIndex = start.getIndexOfEdgeWithNode(endIndex);
+	bool test_passed = true;
+
+	if(!start.removeEdge(endEdgeIndex))
+	{
+		ROS_INFO("Failed to remove edge %i from node", endEdgeIndex);
+		test_passed = false;
+	}
+
+	if(start.getIndexOfEdgeWithNode(endIndex) != -1)
+	{
+		ROS_INFO("Failed to remove connection from start node");
+		test_passed = false;
+	}
+
+	if(!end.removeEdge(startEdgeIndex))
+	{
+		ROS_INFO("Failed to remove edge %i from node", startEdgeIndex);
+		test_passed = false;
+	}
+
+	if(end.getIndexOfEdgeWithNode(startIndex) != -1)
+	{
+		ROS_INFO("Failed to remove connection from end node");
+		test_passed = false;
+	}
+	ROS_INFO("test_edge_removal passed : %i", test_passed);
+	return test_passed;
+
 }
 
 int main(int argc, char **argv)
@@ -269,6 +309,8 @@ int main(int argc, char **argv)
 	test_graph.generate_connections(TEST_GRAPH_NODE_COUNT, max_distance);
 	test_graph_edge_generation(test_graph, max_distance);
 
+	ROS_INFO("Test 3 - testing edge removal");
+	test_edge_removal();
 
     ROS_INFO("End of graph tests");
 	return 0;

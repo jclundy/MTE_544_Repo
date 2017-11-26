@@ -46,14 +46,17 @@ void Node::addEdge(Edge edge)
 	edgeList.push_back(edge);
 }
 
-void Node::removeEdge(int edgeIndex)
+bool Node::removeEdge(int edgeIndex)
 {
 	// order is not important,
 	// so we overwrite the edge at
 	// edgeIndex with the last edge in the list
 	// then pop off the last node in the list
+	if(edgeIndex > edgeList.size() || edgeIndex < 0) return false;
+
 	edgeList[edgeIndex] = edgeList.back();
 	edgeList.pop_back();
+	return true;
 }
 
 bool Node::isConnectedToNodeAtIndex(int nodeIndex)

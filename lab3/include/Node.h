@@ -19,7 +19,7 @@ public:
 
 	std::vector<Edge> edgeList;
 	void addEdge(Edge edge);
-	void removeEdge(int edgeIndex);
+	bool removeEdge(int edgeIndex);
 	bool isConnectedToNodeAtIndex(int nodeIndex);
     double convertToPos(int a);
     int getIndexOfEdgeWithNode(int otherNodeIndex);
