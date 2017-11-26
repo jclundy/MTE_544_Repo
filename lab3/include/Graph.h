@@ -38,8 +38,6 @@ public:
 private:
 	double calculate_distance(Node &start, Node &end);
 
-	int convertPositionToGridIndex(double position, double mapLowerLimit, double resolution);
-
 	bool isConnectionValid(Node &startNode, Node &endNode, nav_msgs::OccupancyGrid& map, double robotSize, double isEmptyValue);
 
 	void bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::vector<int>& y);
