@@ -28,6 +28,7 @@
 
 ros::Publisher marker_pub;
 RViz_Draw drawer;
+RViz_Draw drawer_refreshable;
 #define GRID_SIZE 100
 #define NUM_SAMPLES 100
 #define TAGID 0
@@ -197,7 +198,7 @@ float set_speed(float target_x, float target_y, float prev_theta_error, ros::Pub
 
 
     float cos_error = cos (theta_error);
-    float forward_v = cos_error * cos_error * cos_error * kp_v * dist_error;
+    float forward_v = std::pow(cos_error, 13) * kp_v * dist_error;
     if (forward_v > top_speed)
         forward_v = top_speed;
     if (forward_v < -top_speed)
@@ -408,6 +409,7 @@ int main(int argc, char **argv)
 	//Initialize the ROS framework
     ros::init(argc,argv,"main_control");
     ros::NodeHandle n;
+    ros::NodeHandle n_refreshable;
 
     Node graphNode(0,0,0);
     ROS_INFO("defined a new node index : %d x: %f y: %f", graphNode.index, graphNode.x, graphNode.y);
@@ -507,42 +509,65 @@ int main(int argc, char **argv)
 
     uint num_waypoints = waypoints.size();
 
-
+    //draw the path/waypoints
     drawer.claim(visualization_msgs::Marker::LINE_STRIP);
     drawer.update_color(1,1,1,1);
-    //generate curve points
     for(int i = 0; i < num_waypoints; i++) {
-       //geometry_msgs::Point p;
-       //p.x = x;
-       //p.y = y;
-       //p.z = 0; //not used
-       //lines.points.push_back(p);
        drawer.add_point(waypoints[i]->x, waypoints[i]->y);
     }
+    drawer.pub();
+    drawer.release();
 
-   //publish new curve
-   //marker_pub.publish(lines);
-   drawer.pub();
-   drawer.release();
 
     float theta_error = 0;
     while (ros::ok())
     {
-    	loop_rate.sleep(); //Maintain the loop rate
-    	ros::spinOnce();   //Check for new messages
+        drawer_refreshable = RViz_Draw(n_refreshable,"refreshable_visualize_points",true);
 
-      if (wpt_ind >= num_waypoints)
-      {
-        wpt_ind = 0;
-      }
-      float error_mag = get_error_magnitude(waypoints[wpt_ind]->x, waypoints[wpt_ind]->y);
-      theta_error = set_speed(waypoints[wpt_ind]->x, waypoints[wpt_ind]->y, theta_error, velocity_publisher);
-      //ROS_INFO("theta_error = %f,   x,y = %f \t %f    dist=%f", theta_error, ips_x, ips_y, error_mag);
+        loop_rate.sleep(); //Maintain the loop rate
+        ros::spinOnce();   //Check for new messages
 
-      if (error_mag < 0.08)
-      {
-        wpt_ind++;
-      }
+        if (wpt_ind >= num_waypoints)
+        {
+            wpt_ind = 0;
+        }
+
+        float error_mag = get_error_magnitude(waypoints[wpt_ind]->x, waypoints[wpt_ind]->y);
+        theta_error = set_speed(waypoints[wpt_ind]->x, waypoints[wpt_ind]->y, theta_error, velocity_publisher);
+        //ROS_INFO("theta_error = %f,   x,y = %f \t %f    dist=%f", theta_error, ips_x, ips_y, error_mag);
+
+        if (error_mag < 0.08)
+        {
+            wpt_ind++;
+        }
+
+        //draw robot position
+        drawer_refreshable.claim(visualization_msgs::Marker::POINTS);
+        drawer_refreshable.update_color(1, 0, 1, 1);
+        drawer_refreshable.update_scale(0.5, 0.5);
+        drawer_refreshable.add_point(ips_x, ips_y);
+        drawer_refreshable.pub();
+        drawer_refreshable.release();
+
+        //draw next waypoint
+        drawer_refreshable.claim(visualization_msgs::Marker::POINTS);
+        drawer_refreshable.update_color(0.1, 1, 0.1, 1);
+        drawer_refreshable.add_point(waypoints[wpt_ind]->x, waypoints[wpt_ind]->y);
+        drawer_refreshable.pub();
+        drawer_refreshable.release();
+
+        //draw robot facing direction marker
+        drawer_refreshable.claim(visualization_msgs::Marker::POINTS);
+        drawer_refreshable.update_color(1, 0, 0, 1);
+        drawer_refreshable.update_scale(0.2, 0.2);
+        drawer_refreshable.add_point(ips_x + 0.5*cos(ips_yaw),ips_y + 0.5*sin(ips_yaw));
+        drawer_refreshable.pub();
+        drawer_refreshable.release();
+
+
+
+        drawer_refreshable.update_scale(0.01, 0.01);
+
     }
 
     /*
