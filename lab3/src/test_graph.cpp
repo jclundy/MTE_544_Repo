@@ -43,8 +43,8 @@ bool map_drawn = false;
 
 double occ_grid[GRID_SIZE][GRID_SIZE];
 int TEST_GRAPH_NODE_COUNT = 9;
-double TEST_GRAPH_X[9] = {10, 10, 10, 50, 50, 50, 90, 90, 90};
-double TEST_GRAPH_Y[9] = {10, 50, 90, 10, 50, 90, 10, 50, 90};
+int TEST_GRAPH_X[9] = {10, 10, 10, 50, 50, 50, 90, 90, 90};
+int TEST_GRAPH_Y[9] = {10, 50, 90, 10, 50, 90, 10, 50, 90};
 Graph graph;
 
 void print_occupancy_grid(double og[][GRID_SIZE], int max_x, int max_y)
@@ -77,7 +77,7 @@ void generate_graph(const nav_msgs::OccupancyGrid& msg, ros::Publisher publisher
   graph.prune_invalid_connections(msg, 0.3, 0);
   ROS_INFO("after pruning edges \n");
   //graph.print_graph_to_console();
-  graph.draw_in_rviz(publisher,11, 0, 0, 1, 1, "node_samples");
+  graph.draw_in_rviz(&drawer);
 }
 
 void map_callback(const nav_msgs::OccupancyGrid& msg)
@@ -145,19 +145,19 @@ bool test_graph_initialization(Graph &test_graph)
 			ROS_INFO("Index of node %i not equal to its index field %i", i, index);
 			test_passed = false;
 		}
-		double x_correct = TEST_GRAPH_X[i];
-		double y_correct = TEST_GRAPH_Y[i];
+		int x_correct = TEST_GRAPH_X[i];
+		int y_correct = TEST_GRAPH_Y[i];
 
-		double x = test_graph.nodeList[i].x;
-		double y = test_graph.nodeList[i].y;
+		int x = test_graph.nodeList[i].xindex;
+		int y = test_graph.nodeList[i].yindex;
 		if(x != x_correct)
 		{
-			ROS_INFO("X value %f of node %i not equal to intialized X %f", i, x, x_correct);
+			ROS_INFO("X value %i of node %i not equal to intialized X %i", i, x, x_correct);
 			test_passed = false;
 		}
 		if(y != y_correct)
 		{
-			ROS_INFO("Y value %f of node %i not equal to intialized Y %f", i, y, y_correct);
+			ROS_INFO("Y value %i of node %i not equal to intialized Y %i", i, y, y_correct);
 			test_passed = false;
 		}		
 	}
@@ -175,10 +175,10 @@ bool test_graph_edge_generation(Graph &test_graph, double max_distance)
 		{
 
 			double cost = test_graph.nodeList[i].edgeList[j].cost;
-			double endNodeIndex = test_graph.nodeList[i].edgeList[j].endNodeIndex;
+			int endNodeIndex = test_graph.nodeList[i].edgeList[j].endNodeIndex;
 			if(test_graph.nodeList[i].edgeList[j].cost > max_distance)
 			{
-				ROS_INFO("Cost %f of edge %i, %i greater than allowed max distance %f", cost, i, endNodeIndex);
+				ROS_INFO("Cost %f of edge %i, %i greater than allowed max distance %f", cost, i, endNodeIndex, max_distance);
 				test_passed = false;
 			}
 		}	
@@ -188,13 +188,13 @@ bool test_graph_edge_generation(Graph &test_graph, double max_distance)
 	{
 		for (int j = i+1; j < TEST_GRAPH_NODE_COUNT; j++)
 		{
-			double x0 = test_graph.nodeList[i].x;
-			double y0 = test_graph.nodeList[i].y;
-			double x1 = test_graph.nodeList[j].x;
-			double y1 = test_graph.nodeList[j].y;
+			int x0 = test_graph.nodeList[i].xindex;
+			int y0 = test_graph.nodeList[i].yindex;
+			int x1 = test_graph.nodeList[j].xindex;
+			int y1 = test_graph.nodeList[j].yindex;
 
 			double distance = test_graph.calculate_distance(i, j);
-			ROS_INFO("Node %i : (%f,%f) and Node %i, (%f,%f)", i, x0, y0, j, x1, y1);
+			ROS_INFO("Node %i : (%i,%i) and Node %i, (%i,%i)", i, x0, y0, j, x1, y1);
 
 			// test that all nodes within specified distance form edges
 			if(distance < max_distance)
@@ -220,7 +220,7 @@ bool test_graph_edge_generation(Graph &test_graph, double max_distance)
 		{
 
 			double cost = test_graph.nodeList[i].edgeList[j].cost;
-			double endNodeIndex = test_graph.nodeList[i].edgeList[j].endNodeIndex;
+			int endNodeIndex = test_graph.nodeList[i].edgeList[j].endNodeIndex;
 			double distance = test_graph.calculate_distance(i, endNodeIndex);
 			if(test_graph.nodeList[i].edgeList[j].cost != distance)
 			{
@@ -231,6 +231,11 @@ bool test_graph_edge_generation(Graph &test_graph, double max_distance)
 	}
 	ROS_INFO("test_graph_edge_generation passed : %i", test_passed);
 	return test_passed;
+}
+
+bool test_edge_removal(Graph &test_graph)
+{
+	
 }
 
 int main(int argc, char **argv)

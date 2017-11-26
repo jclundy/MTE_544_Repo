@@ -22,10 +22,12 @@ public:
 	void removeEdge(int edgeIndex);
 	bool isConnectedToNodeAtIndex(int nodeIndex);
     double convertToPos(int a);
+    int getIndexOfEdgeWithNode(int otherNodeIndex);
 
     Node();
 	Node(int indexValue, int xValue, int yValue);
 	Node(const Node &obj);
+
 };
 
 #endif

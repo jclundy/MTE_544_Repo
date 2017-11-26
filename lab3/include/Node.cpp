@@ -22,9 +22,23 @@ Node::Node(int indexValue, int xValue, int yValue)
 Node::Node(const Node &obj)
 {
 	index = obj.index;
-	x = obj.x;
-	y = obj.y;
+	xindex = obj.xindex;
+	yindex = obj.yindex;
+	xpos = obj.xpos;
+	ypos = obj.ypos;
 	edgeList = obj.edgeList;
+}
+
+int Node::getIndexOfEdgeWithNode(int otherNodeIndex)
+{
+	for(int i = 0; i < edgeList.size(); i++)
+	{
+		if(edgeList[i].endNodeIndex == otherNodeIndex)
+		{
+			return i;
+		}
+	}
+	return -1;
 }
 
 void Node::addEdge(Edge edge)

@@ -41,7 +41,7 @@ void Graph::generate_connections(int connectionsPerNode, double maxDistance)
 	}
 }
 
-double Graph::calculate_distance(Node start, Node end)
+double Graph::calculate_distance(Node &start, Node &end)
 {
 	double dx = end.xindex - start.xindex;
 	double dy = end.yindex - start.yindex;
@@ -49,12 +49,12 @@ double Graph::calculate_distance(Node start, Node end)
 }
 double Graph::calculate_distance(int i, int j)
 {
-	double dx = nodeList[i].x - nodeList[j].x;
-	double dy = nodeList[i].y - nodeList[j].y;
+	double dx = nodeList[i].xindex - nodeList[j].xindex;
+	double dy = nodeList[i].yindex - nodeList[j].yindex;
 	return std::sqrt(dx*dx + dy*dy);
 }
 
-void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map , double robotSize, double isEmptyValue)
+void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotSize, double isEmptyValue)
 {
 	// Idea: iterate through list of nodes
 	// for each node, iterate through its list of edges
@@ -73,7 +73,7 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map , double robot
 			Node endNode = nodeList[endNodeIndex];
 
 			// find corresponding edge in other node
-			int indexOfEdgeInEndNode = getIndexOfEdgeWithNode(endNode,i);
+			int indexOfEdgeInEndNode = endNode.getIndexOfEdgeWithNode(i);
 			// skip if edge to given node is not found
 			if(indexOfEdgeInEndNode < 0)
 			{
@@ -100,24 +100,9 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map , double robot
 	}
 }
 
-int Graph::getIndexOfEdgeWithNode(Node node, int otherNodeIndex)
-{
-	for(int i = 0; i < node.edgeList.size(); i++)
-	{
-		if(node.edgeList[i].endNodeIndex == otherNodeIndex)
-		{
-			return i;
-		}
-	}
-	return -1;
-}
 
-int Graph::convertPositionToGridIndex(double position, double mapLowerLimit, double resolution)
-{
-	return int((position - mapLowerLimit)/resolution);
-}
 
-bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyGrid& map, double robotSize, double isEmptyValue)
+bool Graph::isConnectionValid(Node &startNode, Node &endNode, nav_msgs::OccupancyGrid& map, double robotSize, double isEmptyValue)
 {
 	// Determining if connection valid:
 	// 1. map start and end node x-y position to map x-y indices

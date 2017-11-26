@@ -30,7 +30,7 @@ ros::Publisher marker_pub;
 RViz_Draw drawer;
 RViz_Draw drawer_refreshable;
 #define GRID_SIZE 100
-#define NUM_SAMPLES 250
+#define NUM_SAMPLES 100
 #define TAGID 0
 #define PI 3.14159265
 #define SIMULATION
@@ -292,7 +292,7 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
     ROS_INFO("Beginning A*");
     ROS_INFO("start node index: %d", nodes[start_index]->index);
     ROS_INFO("End node index: %d", nodes[end_index]->index);
-    ROS_INFO("start node x: %f", nodes[end_index]->xindex);
+    ROS_INFO("start node x: %d", nodes[end_index]->xindex);
     //declarations
     std::vector<Node*> open_set;
     std::vector<Node*> closed_set;
