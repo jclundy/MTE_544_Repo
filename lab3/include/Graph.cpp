@@ -60,41 +60,41 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotS
 	// for each node, iterate through its list of edges
 	// for a valid connection, mark as checked (on current node, and as well as on endpoint node)
 	// remove invalid connections
-	for(int i = 0; i < nodeList.size(); i++)
+//#ifdef DEBUG
+	ROS_INFO("Pruning Edges");
+//#endif
+	for(int startIndex = 0; startIndex < nodeList.size(); startIndex++)
 	{
-		for(int j = 0; j < nodeList[i].edgeList.size(); j++)
+		for(int startEdgeIndex = 0; startEdgeIndex < nodeList[startIndex].edgeList.size(); startEdgeIndex++)
 		{
 			// if edge has already been checked skip to next edge
-			Node startNode = nodeList[i];
-			Edge startEdge = startNode.edgeList[j];
-			int endNodeIndex = startEdge.endNodeIndex;
+			int endIndex = nodeList[startIndex].edgeList[startEdgeIndex].endNodeIndex;
 
-			if(startEdge.validated) continue;
-			Node endNode = nodeList[endNodeIndex];
+			if(nodeList[startIndex].edgeList[startEdgeIndex].validated) continue;
 
 			// find corresponding edge in other node
-			int indexOfEdgeInEndNode = endNode.getIndexOfEdgeWithNode(i);
+			int endEdgeIndex = nodeList[endIndex].getIndexOfEdgeWithNode(startIndex);
 			// skip if edge to given node is not found
-			if(indexOfEdgeInEndNode < 0)
+			if(endEdgeIndex < 0)
 			{
-				//ROS_INFO("edge %i not found in node %i",indexOfEdgeInEndNode, endNodeIndex);
-				nodeList[i].removeEdge(j);
+				//ROS_INFO("edge %i not found in node %i",endEdgeIndex, endIndex);
+				nodeList[startIndex].removeEdge(startEdgeIndex);
 				continue;
 			}
 			// check if the edge results in a collision
 
-			bool isCollisionFree = isConnectionValid(startNode, endNode, map, robotSize, isEmptyValue);
+			bool isCollisionFree = isConnectionValid(startIndex, endIndex, map, robotSize, isEmptyValue);
 			if(isCollisionFree)
 			{
 				// mark edge as validated
-				nodeList[i].edgeList[j].validated = true;
+				nodeList[startIndex].edgeList[startEdgeIndex].validated = true;
 				// mark corresponding edge in other node as validated
-				nodeList[endNodeIndex].edgeList[indexOfEdgeInEndNode].validated = true;
+				nodeList[endIndex].edgeList[endEdgeIndex].validated = true;
 			} else {
 				// remove edges from both start and end nodes
-				//ROS_INFO("Removing Invalid Connection %i, %i", i, endNodeIndex);
-				nodeList[i].removeEdge(j);
-				nodeList[endNodeIndex].removeEdge(indexOfEdgeInEndNode);
+				//ROS_INFO("Removing Invalid Connection %i, %i", i, endIndex);
+				nodeList[startIndex].removeEdge(startEdgeIndex);
+				nodeList[endIndex].removeEdge(endEdgeIndex);
 			}
 		}
 	}
@@ -102,8 +102,9 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotS
 
 
 
-bool Graph::isConnectionValid(Node &startNode, Node &endNode, nav_msgs::OccupancyGrid& map, double robotSize, double isEmptyValue)
+bool Graph::isConnectionValid(int startIndex, int endIndex, nav_msgs::OccupancyGrid& map, double robotSize, int isEmptyValue)
 {
+	//Node &startNode, Node &endNode
 	// Determining if connection valid:
 	// 1. map start and end node x-y position to map x-y indices
 	// 2. Use line-drawing algorithm, get list of tiles
@@ -121,11 +122,11 @@ bool Graph::isConnectionValid(Node &startNode, Node &endNode, nav_msgs::Occupanc
 	double yMapStart = map.info.origin.position.y;
 	double mapResolution = map.info.resolution;
 
-	int x0 = int(startNode.xindex);
-	int y0 = int(startNode.yindex);
+	int x0 = nodeList[startIndex].xindex;
+	int y0 = nodeList[startIndex].yindex;
 
-	int x1 = int(endNode.xindex);
-	int y1 = int(endNode.yindex);
+	int x1 = nodeList[endIndex].xindex;
+	int y1 = nodeList[endIndex].yindex;
 
 	std::vector<int> xTileIndices;
 	std::vector<int> yTileIndices;
@@ -163,7 +164,7 @@ bool Graph::isConnectionValid(Node &startNode, Node &endNode, nav_msgs::Occupanc
 		int mapDataIndex = xIndex + yIndex * map.info.width;
 		if(map.data[mapDataIndex] > isEmptyValue)
 		{
-			//ROS_INFO("Invalid Connection %i, %i, with value %d", startNode.index, endNode.index, map.data[mapDataIndex]);
+			//ROS_INFO("Invalid Connection %i, %i, with value %d", nodeList[startIndex].index, nodeList[endIndex].index, map.data[mapDataIndex]);
 			return false;
 		}
 		// iterate through tiles adjacent to
