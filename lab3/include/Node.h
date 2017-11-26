@@ -21,8 +21,10 @@ public:
 	void addEdge(Edge edge);
 	bool removeEdge(int edgeIndex);
 	bool isConnectedToNodeAtIndex(int nodeIndex);
-    double convertToPos(int a);
+
     int getIndexOfEdgeWithNode(int otherNodeIndex);
+    void setIndex(int x, int y);
+    void setPos(double x, double y);
 
     Node();
 	Node(int indexValue, int xValue, int yValue);

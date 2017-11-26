@@ -30,7 +30,7 @@ ros::Publisher marker_pub;
 RViz_Draw drawer;
 RViz_Draw drawer_refreshable;
 #define GRID_SIZE 100
-#define NUM_SAMPLES 100
+#define NUM_SAMPLES 500
 #define TAGID 0
 #define PI 3.14159265
 #define SIMULATION
@@ -142,24 +142,28 @@ void generate_graph(const nav_msgs::OccupancyGrid& msg, ros::Publisher publisher
   graph_generated = true;
 }
 
-void print_occupancy_grid(double og[][GRID_SIZE], int max_x, int max_y)
-{
-    for(int i = 0; i < max_x; i++)
-    {
-        for(int j = 0; j < max_y; j++)
-        {
-            double prob = og[i][j];
-            int val = int(prob / 100);
-            int abs_val = abs(val);
-            std::cout << val;
-        }
-        std::cout << ';' << '\n';
+void map_print(double og[][GRID_SIZE]) {
+    for(int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
+        if(i%GRID_SIZE == 0)
+            std::cout << "\n";
+
+        if(og[i%GRID_SIZE][i/GRID_SIZE] == 0)
+            std::cout << " ";
+        else if(og[i%GRID_SIZE][i/GRID_SIZE] == 100)
+            std::cout << "H";
+        else if(og[i%GRID_SIZE][i/GRID_SIZE] == -10)
+            std::cout << "O";
+        else
+            std::cout << "Z";
     }
+   std::cout << std::endl;
 }
+
 //Callback function for the map
 void map_callback(const nav_msgs::OccupancyGrid& msg)
 {
     // Assuming 100x100 map input, will complain if that doesn't match
+    // Grid is occ[x][y] increasing with axis
     if(msg.info.width != GRID_SIZE || msg.info.height != GRID_SIZE) {
         ROS_INFO("actual width %d, height %d, vs GRID_SIZE %i", msg.info.width, msg.info.height, GRID_SIZE);
         ROS_INFO("Inconsistent map sizes, dumping...");
@@ -170,7 +174,7 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
 
     // Reformat input map
     for(int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
-        occ_grid[GRID_SIZE-1 - i/GRID_SIZE][i%GRID_SIZE] = msg.data[i];
+        occ_grid[i/GRID_SIZE][i%GRID_SIZE] = msg.data[i];
     }
     // Place start and end nodes
     drawer.claim(visualization_msgs::Marker::POINTS);
@@ -199,6 +203,8 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
 
     drawer.pub();
     drawer.release();
+
+    //map_print(occ_grid);
 
     // Publish sampling nodes to RVIZ
     generate_graph(msg, marker_pub);
@@ -439,9 +445,9 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
 int main(int argc, char **argv)
 {
     // Set start and end points
-    Node startNode = Node(1, 40, 0);
-    Node midNode = Node(2, 80, -40);
-    Node endNode = Node(2, 80, 0);
+    Node startNode = Node(1, 4, 0);
+    Node midNode = Node(2, 8, -4);
+    Node endNode = Node(3, 8, 0);
 
     checkpoints.push_back(startNode);
     checkpoints.push_back(midNode);
