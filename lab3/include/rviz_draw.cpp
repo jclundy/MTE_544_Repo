@@ -28,6 +28,13 @@ RViz_Draw::RViz_Draw(ros::NodeHandle n)
     claimed = false;
 }
 
+void RViz_Draw::update_map_details(float res, float originx, float originy)
+{
+   objs.pose.position.x = originx;
+   objs.pose.position.y = originy+10;
+   resolution = res;
+}
+
 void RViz_Draw::add_point(double x, double y)
 {
     geometry_msgs::Point p;
@@ -40,8 +47,8 @@ void RViz_Draw::add_point(double x, double y)
 void RViz_Draw::add_point_scale(double x, double y)
 {
     geometry_msgs::Point p;
-    p.x = x*0.1;
-    p.y = y*0.1;
+    p.x = x*resolution;
+    p.y = y*resolution;
     p.z = 0;
     objs.points.push_back(p);
 }

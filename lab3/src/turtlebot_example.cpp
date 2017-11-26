@@ -147,6 +147,8 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
         return;
     }
 
+    drawer.update_map_details(msg.info.resolution, msg.info.origin.position.x, msg.info.origin.position.y);
+
     // Reformat input map
     for(int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
         occ_grid[GRID_SIZE-1 - i/GRID_SIZE][i%GRID_SIZE] = msg.data[i];

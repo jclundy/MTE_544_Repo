@@ -10,6 +10,7 @@ class RViz_Draw
 public:
     RViz_Draw();
     RViz_Draw(ros::NodeHandle n);
+    void update_map_details(float res, float originx, float originy);
     void add_point(double x, double y);
     void add_point_scale(double x, double y);
     void update_scale(double scalex, double scaley);
@@ -23,6 +24,7 @@ private:
     visualization_msgs::Marker objs;
     ros::Publisher marker_pub;
     bool claimed;
+    float resolution;
 
 };
 
