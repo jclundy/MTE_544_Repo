@@ -28,8 +28,9 @@
 
 ros::Publisher marker_pub;
 RViz_Draw drawer;
+RViz_Draw drawer_refreshable;
 #define GRID_SIZE 100
-#define NUM_SAMPLES 100
+#define NUM_SAMPLES 250
 #define TAGID 0
 #define PI 3.14159265
 #define SIMULATION
@@ -134,7 +135,7 @@ void generate_graph(const nav_msgs::OccupancyGrid& msg, ros::Publisher publisher
   graph.prune_invalid_connections(msg, 0.3, 0);
   //ROS_INFO("after pruning edges \n");
   //graph.print_graph_to_console();
-  graph.draw_in_rviz(&drawer);
+  //graph.draw_in_rviz(&drawer);
   graph_generated = true;
 }
 //Callback function for the map
@@ -199,7 +200,7 @@ float set_speed(float target_x, float target_y, float prev_theta_error, ros::Pub
 
 
     float cos_error = cos (theta_error);
-    float forward_v = cos_error * cos_error * cos_error * kp_v * dist_error;
+    float forward_v = std::pow(cos_error, 13) * kp_v * dist_error;
     if (forward_v > top_speed)
         forward_v = top_speed;
     if (forward_v < -top_speed)
@@ -287,9 +288,13 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
     ROS_INFO("Starting While loop");
     while(!done){
         display_openset_closedset(open_set, closed_set);
-        //code for if open set is empty, return an empty closed set
 
-        //if open set not empty
+        //code for if open set is empty, return an empty closed set 
+        if(open_set.size() == 0){
+            return;
+        }
+
+     //if open set not empty
         //iterate through array to find best node and put into closed set
         double min = open_set[0]->lower_bound_cost;
         uint mindex = 0;
@@ -332,7 +337,6 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
                 ROS_INFO("checking if node is in closed set");
                 //check if node is in closed set
                 bool found = 0;
-                int k = 0;
                 for(int k = 0; k < closed_set.size() && !found; k++){
                     if(closed_set[k]->index == neighbour->index){
                         found = 1;
@@ -354,19 +358,20 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
                 ROS_INFO("check if node is in open set and the current distance is lower than previous one");
                 //check if node is in open set and the current distance is lower than previous one
                 for(int m = 0; m < open_set.size() && !found; m++){
-                    if(open_set[k]->index == neighbour->index){
-                        found = 1;
-                        if(dcur < open_set[k]->current_cost){
-                            open_set[k]->back_pointer_index = best_node->index;
-                            open_set[k]->lower_bound_cost = dtogo + dcur;
-                            open_set[k]->current_cost = dcur;
+
+                    if(open_set[m]->index == neighbour->index){
+                        found = 1; 
+                        if(dcur < open_set[m]->current_cost){
+                            open_set[m]->back_pointer_index = best_node->index;
+                            open_set[m]->lower_bound_cost = dtogo + dcur;
+                            open_set[m]->current_cost = dcur;
                         }
                     }
                 }
                 if(!found){
                     ROS_INFO("was not found, add to open set");
                     //add endNodeIndex to openSet
-                    for(int i=0;i<nodes.size();i++){
+                    for(int i = 0; i < nodes.size(); i++){
                         if (neighbour->index == nodes[i]->index){
                             neighbour->back_pointer_index = best_node->index;
                             neighbour->lower_bound_cost = dtogo + dcur;
@@ -406,6 +411,7 @@ int main(int argc, char **argv)
 	//Initialize the ROS framework
     ros::init(argc,argv,"main_control");
     ros::NodeHandle n;
+    ros::NodeHandle n_refreshable;
 
     Node graphNode(0,0,0);
     ROS_INFO("defined a new node index : %d x: %f y: %f", graphNode.index, graphNode.x, graphNode.y);
@@ -425,49 +431,9 @@ int main(int argc, char **argv)
     ros::Publisher velocity_publisher = n.advertise<geometry_msgs::Twist>("/cmd_vel_mux/input/navi", 1);
     marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 1, true);
 
-    ROS_INFO("----1----");
-
     //Set the loop rate
     ros::Rate loop_rate(20);    //20Hz update rate
-    /*
-    float theta_error = 0;
 
-    uint num_waypoints = 5;
-    std::vector<Node> waypoints;
-    waypoints.push_back(Node(0,0,0));
-    waypoints.push_back(Node(1,10,10));
-    waypoints.push_back(Node(2,10,-10));
-    waypoints.push_back(Node(3,-10,-10));
-    waypoints.push_back(Node(4,-10,10));
-    */
-    ROS_INFO("----2----");
-    /*
-    uint num_waypoints = 5;
-    std::vector<Temp_node> waypoints;
-    for (int i = 0; i < num_waypoints; i++)
-    {
-      waypoints.push_back(Temp_node());
-    }
-    waypoints[0].x = 0;
-    waypoints[0].y = 0;
-    waypoints[1].x = 10;
-    waypoints[1].y = 10;
-    waypoints[2].x = 10;
-    waypoints[2].y = -10;
-    waypoints[3].y = -10;
-    waypoints[3].x = -10;
-    waypoints[4].y = -10;
-    waypoints[4].y = 10;
-    */
-
-/*
-    std::vector<Node> waypoints;
-    waypoints.push_back(Node(0,0,0));
-    waypoints.push_back(Node(1,10,-10));
-    waypoints.push_back(Node(2,10,10));
-    waypoints.push_back(Node(3,-10,10));
-    waypoints.push_back(Node(4,-10,-10));
-*/
     uint wpt_ind = 0;
 
     bool graph_drawn = false;
@@ -488,107 +454,94 @@ int main(int argc, char **argv)
     std::vector<Node*> waypoints;
     //astar(nodeList, waypoints, 0, 25);
 
-    Node node0(0,0,0);
-    Node node1(1, 10, -10);
-    Node node2(2, 10, 10);
-    Node node3(3, -10, 10);
-    Node node4(4, -10, -10);
+ //   Node node0(0,0,0);
+  //  Node node1(1, 10, -10);
+  //  Node node2(2, 10, 10);
+  //  Node node3(3, -10, 10);
+  //  Node node4(4, -10, -10);
 
+    astar(nodeList, waypoints, 0, 25);
+/*
     waypoints.push_back(&node0);
     waypoints.push_back(&node1);
     waypoints.push_back(&node2);
     waypoints.push_back(&node3);
     waypoints.push_back(&node4);
-
+*/
 
     uint num_waypoints = waypoints.size();
-
-
-    drawer.claim(visualization_msgs::Marker::LINE_STRIP);
-    drawer.update_color(1,1,1,1);
-    //generate curve points
-    for(int i = 0; i < num_waypoints; i++) {
-       //geometry_msgs::Point p;
-       //p.x = x;
-       //p.y = y;
-       //p.z = 0; //not used
-       //lines.points.push_back(p);
-       drawer.add_point(waypoints[i]->x, waypoints[i]->y);
+    if (num_waypoints == 0)
+    {
+        ROS_WARN("no path found, exiting");
+        return 0;
     }
 
-   //publish new curve
-   //marker_pub.publish(lines);
-   drawer.pub();
-   drawer.release();
+    //TODO: redo with proper scaling once coded
+    for(int i = 0; i < num_waypoints; i++) {
+        waypoints[i]->x *= 0.1;
+        waypoints[i]->y *= 0.1;
+    }
+
+
+    //draw the path/waypoints
+    drawer.claim(visualization_msgs::Marker::LINE_STRIP);
+    drawer.update_scale(0.2, 0.2);
+    drawer.update_color(1,0,0,1);
+    for(int i = 0; i < num_waypoints; i++) {
+       drawer.add_point(waypoints[i]->x, waypoints[i]->y);
+    }
+    drawer.pub();
+    drawer.release();
+
 
     float theta_error = 0;
     while (ros::ok())
     {
-    	loop_rate.sleep(); //Maintain the loop rate
-    	ros::spinOnce();   //Check for new messages
+        drawer_refreshable = RViz_Draw(n_refreshable,"refreshable_visualize_points",true);
 
-      if (wpt_ind >= num_waypoints)
-      {
-        wpt_ind = 0;
-      }
-      float error_mag = get_error_magnitude(waypoints[wpt_ind]->x, waypoints[wpt_ind]->y);
-      theta_error = set_speed(waypoints[wpt_ind]->x, waypoints[wpt_ind]->y, theta_error, velocity_publisher);
-      //ROS_INFO("theta_error = %f,   x,y = %f \t %f    dist=%f", theta_error, ips_x, ips_y, error_mag);
+        loop_rate.sleep(); //Maintain the loop rate
+        ros::spinOnce();   //Check for new messages
 
-      if (error_mag < 0.08)
-      {
-        wpt_ind++;
-      }
+
+        //TODO: END execution here, this is when we are finished traversing the maze
+        if (wpt_ind >= num_waypoints)
+        {
+            wpt_ind = 0;
+        }
+
+        float error_mag = get_error_magnitude(waypoints[wpt_ind]->x, waypoints[wpt_ind]->y);
+        theta_error = set_speed(waypoints[wpt_ind]->x, waypoints[wpt_ind]->y, theta_error, velocity_publisher);
+        //ROS_INFO("theta_error = %f,   x,y = %f \t %f    dist=%f", theta_error, ips_x, ips_y, error_mag);
+
+
+
+        //draw robot position
+        drawer_refreshable.claim(visualization_msgs::Marker::POINTS);
+        drawer_refreshable.update_color(1, 0, 1, 1);
+        drawer_refreshable.update_scale(0.5, 0.5);
+        drawer_refreshable.add_point(ips_x, ips_y);
+        drawer_refreshable.pub();
+        drawer_refreshable.release();
+
+        //draw next waypoint
+        drawer_refreshable.claim(visualization_msgs::Marker::POINTS);
+        drawer_refreshable.update_color(0.1, 1, 0.1, 1);
+        drawer_refreshable.add_point(waypoints[wpt_ind]->x, waypoints[wpt_ind]->y);
+        drawer_refreshable.pub();
+        drawer_refreshable.release();
+
+        //draw robot facing direction marker
+        drawer_refreshable.claim(visualization_msgs::Marker::POINTS);
+        drawer_refreshable.update_color(1, 0, 0, 1);
+        drawer_refreshable.update_scale(0.2, 0.2);
+        drawer_refreshable.add_point(ips_x + 0.5*cos(ips_yaw),ips_y + 0.5*sin(ips_yaw));
+        drawer_refreshable.pub();
+        drawer_refreshable.release();
+
+        if (error_mag < 0.08)
+        {
+            wpt_ind++;
+        }
     }
-
-    /*
-    ROS_INFO("----3----");
-
-    Node node0(0, 3, 4);
-    Node node1(1, 6, 8);
-    Node node2(2, 15, 15);
-    Node node3(3, 16, 16);
-    Node node4(4, 13, 12);
-    Node node5(5, 2, 1);
-
-    Edge edge0(distance(&node0,&node1),1);
-    Edge edge1(distance(&node1,&node2),2);
-    Edge edge2(distance(&node2,&node3),3);
-    Edge edge3(distance(&node2,&node4),4);
-    Edge edge4(distance(&node3,&node5),5);
-
-    //node1.edgeList.push_back(edge1);
-    node0.addEdge(edge0);
-    node1.addEdge(edge1);
-    node2.addEdge(edge2);
-    node2.addEdge(edge3);
-    node3.addEdge(edge4);
-
-    ROS_INFO("----4----%i", node1.edgeList[0].endNodeIndex);
-    ROS_INFO("----4----%i", node1.edgeList.size());
-
-
-    ROS_INFO("----4.1----%lu", node1.edgeList.size());
-
-
-    std::vector<Node*> nodeList;
-    nodeList.reserve(2);
-
-    ROS_INFO("----4.5----");
-    nodeList.push_back(&node0);
-    ROS_INFO("----4.6----");
-    nodeList.push_back(&node1);
-    nodeList.push_back(&node2);
-    nodeList.push_back(&node3);
-    nodeList.push_back(&node4);
-    nodeList.push_back(&node5);
-    //nodeList.push_back(node2);
-
-    ROS_INFO("----5----");
-
-    std::vector<Node*> spath;
-    astar(nodeList, spath, 0, 5);
-*/
-
     return 0;
 }
