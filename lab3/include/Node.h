@@ -7,21 +7,25 @@
 class Node
 {
 public:
-	int index;
-	double x;
-	double y;
-	
+    int index;
+    int xindex;
+    int yindex;
+	double xpos;
+	double ypos;
+
 	int back_pointer_index;
-	double lower_bound_cost; 
+	double lower_bound_cost;
 	double current_cost;
 
 	std::vector<Edge> edgeList;
 	void addEdge(Edge edge);
 	void removeEdge(int edgeIndex);
 	bool isConnectedToNodeAtIndex(int nodeIndex);
+    double convertToPos(int a);
 
-	Node(int indexValue, double xValue, double yValue);
-	
+    Node();
+	Node(int indexValue, int xValue, int yValue);
+
 };
 
 #endif

@@ -43,8 +43,8 @@ void Graph::generate_connections(int connectionsPerNode, double maxDistance)
 
 double Graph::calculate_distance(Node start, Node end)
 {
-	double dx = end.x - start.x;
-	double dy = end.y - start.y;
+	double dx = end.xindex - start.xindex;
+	double dy = end.yindex - start.yindex;
 	return std::sqrt(dx*dx + dy*dy);
 }
 
@@ -130,11 +130,11 @@ bool Graph::isConnectionValid(Node startNode, Node endNode, nav_msgs::OccupancyG
 	double yMapStart = map.info.origin.position.y;
 	double mapResolution = map.info.resolution;
 
-	int x0 = int(startNode.x);
-	int y0 = int(startNode.y);
+	int x0 = int(startNode.xindex);
+	int y0 = int(startNode.yindex);
 
-	int x1 = int(endNode.x);
-	int y1 = int(endNode.y);
+	int x1 = int(endNode.xindex);
+	int y1 = int(endNode.yindex);
 
 	std::vector<int> xTileIndices;
 	std::vector<int> yTileIndices;
@@ -242,7 +242,7 @@ void Graph::bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::
 bool Graph::add_new_node(int x, int y) {
 	int i;
     for(i = 0; i<nodeList.size(); i++) {
-        if(nodeList[i].x == x && nodeList[i].y == y)
+        if(nodeList[i].xindex == x && nodeList[i].yindex == y)
             return false;
     }
 
@@ -260,10 +260,10 @@ void Graph::draw_in_rviz(RViz_Draw *drawer)
       for(int j = 0; j < nodeList[i].edgeList.size(); j++)
       {
       	int endNodeIndex = nodeList[i].edgeList[j].endNodeIndex;
-		double x0 = nodeList[i].x;
-      	double y0 = nodeList[i].y;
-      	double x1 = nodeList[endNodeIndex].x;
-      	double y1 = nodeList[endNodeIndex].y;
+		double x0 = nodeList[i].xindex;
+      	double y0 = nodeList[i].yindex;
+      	double x1 = nodeList[endNodeIndex].xindex;
+      	double y1 = nodeList[endNodeIndex].yindex;
       	/*geometry_msgs::Point p0, p1;
 		p0.x = x0*0.1;
 		p0.y = y0*0.1;
