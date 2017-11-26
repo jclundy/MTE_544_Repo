@@ -12,11 +12,7 @@ Node::Node()
 Node::Node(int indexValue, int xValue, int yValue)
 {
     index = indexValue;
-	xindex = xValue;
-	yindex = yValue;
-    xpos = convertToPos(xValue);
-    ypos = convertToPos(yValue);
-
+    setPos(xValue, yValue);
 }
 
 void Node::addEdge(Edge edge)
@@ -46,8 +42,18 @@ bool Node::isConnectedToNodeAtIndex(int nodeIndex)
 	return false;
 }
 
-double Node::convertToPos(int a)
+void Node::setIndex(int x, int y)
 {
-    return a/10.0; //TBD
+    xindex = x;
+    yindex = y;
+    xpos = x/10.0;
+    ypos = y/10.0 - 5;
 }
 
+void Node::setPos(double x, double y)
+{
+    xpos = x;
+    ypos = y;
+    xindex = x*10;
+    yindex = (y+5)*10;
+}
