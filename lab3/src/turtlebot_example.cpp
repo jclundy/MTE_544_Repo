@@ -45,7 +45,7 @@ double occ_grid[GRID_SIZE][GRID_SIZE];
 Graph graph;
 bool graph_generated = false;
 
-Node startNode, endNode;
+std::vector<Node> checkpoints;
 
 #ifdef SIMULATION
 //Callback function for the Position topic (SIMULATION)
@@ -161,11 +161,10 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
     drawer.claim(visualization_msgs::Marker::POINTS);
     drawer.update_color(0,1,0,1);
     drawer.update_scale(0.1, 0.1);
-    if(graph.add_new_node(startNode.xindex, startNode.yindex)) {
-        drawer.add_point_scale(startNode.xindex, startNode.yindex);
-    }
-    if(graph.add_new_node(endNode.xindex, endNode.yindex)) {
-        drawer.add_point_scale(endNode.xindex, endNode.yindex);
+    for(int k = 0; k < checkpoints.size(); k++) {
+        if(graph.add_new_node(checkpoints[k].xindex, checkpoints[k].yindex)) {
+            drawer.add_point_scale(checkpoints[k].xindex, checkpoints[k].yindex);
+        }
     }
     drawer.pub();
     drawer.release();
@@ -426,8 +425,13 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
 int main(int argc, char **argv)
 {
     // Set start and end points
-    startNode = Node(1, 40, 0);
-    endNode = Node(2, 80, 0);
+    Node startNode = Node(1, 40, 0);
+    Node midNode = Node(2, 80, -40);
+    Node endNode = Node(2, 80, 0);
+
+    checkpoints.push_back(startNode);
+    checkpoints.push_back(midNode);
+    checkpoints.push_back(endNode);
 
 	//Initialize the ROS framework
     ros::init(argc,argv,"main_control");
