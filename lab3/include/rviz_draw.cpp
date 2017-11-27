@@ -29,8 +29,8 @@ RViz_Draw::RViz_Draw(ros::NodeHandle n, std::string marker_topic, bool latch)
 
 void RViz_Draw::update_map_details(float res, float originx, float originy)
 {
-   objs.pose.position.x = originx+10;
-   objs.pose.position.y = originy;
+   //objs.pose.position.x = originx+10;
+   //objs.pose.position.y = originy;
    resolution = res;
 }
 

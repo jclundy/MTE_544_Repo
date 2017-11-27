@@ -138,6 +138,7 @@ void generate_graph(const nav_msgs::OccupancyGrid& msg, ros::Publisher publisher
   graph.prune_invalid_connections(msg, 0.3, 0);
   //ROS_INFO("after pruning edges \n");
   //graph.print_graph_to_console();
+  drawer.update_color(0,0,1,1);
   graph.draw_in_rviz(&drawer);
   graph_generated = true;
 }
@@ -174,7 +175,7 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
 
     // Reformat input map
     for(int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
-        occ_grid[i/GRID_SIZE][i%GRID_SIZE] = msg.data[i];
+        occ_grid[i%GRID_SIZE][i/GRID_SIZE] = msg.data[i];
     }
 
     Node n;
@@ -516,6 +517,7 @@ int main(int argc, char **argv)
   //  Node node4(4, -10, -10);
 
     astar(nodeList, waypoints, startNode.index, midNode.index);
+    astar(nodeList, waypoints, midNode.index, endNode.index);
 /*
     waypoints.push_back(&node0);
     waypoints.push_back(&node1);

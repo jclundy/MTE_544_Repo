@@ -100,7 +100,7 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotS
 				// mark corresponding edge in other node as validated
 				nodeList[endIndex].edgeList[endEdgeIndex].validated = true;
 				//ROS_INFO("Marked edge on end node as validated");
-			} 
+			}
 			else {
 				// remove edges from both start and end nodes
 				////ROS_INFO("Removing Invalid Connection %i, %i", i, endIndex);
@@ -110,9 +110,9 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotS
 				nodeList[endIndex].removeEdge(endEdgeIndex);
 				//ROS_INFO("Removed edge from end node");
 			}
-			//std::cout << "----------------------------------------\n"; 
+			//std::cout << "----------------------------------------\n";
 		}
-		//std::cout << "===========================================\n"; 
+		//std::cout << "===========================================\n";
 	}
 	for(int startIndex = 0; startIndex < nodeList.size(); startIndex++)
 	{
@@ -122,7 +122,7 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotS
 			{
 				int endIndex = nodeList[startIndex].edgeList[startEdgeIndex].endNodeIndex;
 				int endEdgeIndex = nodeList[endIndex].getIndexOfEdgeWithNode(startIndex);
-				
+
 				nodeList[startIndex].removeEdge(startEdgeIndex);
 				nodeList[endIndex].removeEdge(endEdgeIndex);
 			}
@@ -303,6 +303,7 @@ void Graph::draw_in_rviz(RViz_Draw *drawer)
       	double y0 = nodeList[i].yindex;
       	double x1 = nodeList[endNodeIndex].xindex;
       	double y1 = nodeList[endNodeIndex].yindex;
+        ROS_INFO("line print: %f %f %f %f", x0, y0, x1, y1);
       	/*geometry_msgs::Point p0, p1;
 		p0.x = x0*0.1;
 		p0.y = y0*0.1;
