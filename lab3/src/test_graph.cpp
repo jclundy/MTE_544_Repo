@@ -28,7 +28,7 @@
 ros::Publisher marker_pub;
 RViz_Draw drawer;
 #define GRID_SIZE 100
-#define NUM_SAMPLES 10
+#define NUM_SAMPLES 15
 #define TAGID 0
 #define PI 3.14159265
 #define SIMULATION
@@ -42,16 +42,22 @@ float omega;
 bool map_drawn = false;
 
 double occ_grid[GRID_SIZE][GRID_SIZE];
-int TEST_GRAPH_NODE_COUNT = 9;
-int TEST_GRAPH_X[9] = {10, 10, 10, 50, 50, 50, 90, 90, 90};
-int TEST_GRAPH_Y[9] = {10, 50, 90, 10, 50, 90, 10, 50, 90};
+// int TEST_GRAPH_NODE_COUNT = 11;
+// int TEST_GRAPH_X[11] = {0, 80, 80, 30, 7, 94, 85, 15, 1, 52, 14};
+// int TEST_GRAPH_Y[11] = {50, 10, 50, 1, 67, 64, 12, 97, 37, 43, 11};
+
+#define TEST_GRAPH_NODE_COUNT 13
+int TEST_GRAPH_X[TEST_GRAPH_NODE_COUNT] = {97,45,78,24,1,49,19,73,61,62,11,89,44};
+int TEST_GRAPH_Y[TEST_GRAPH_NODE_COUNT] = { 68,39,58,84,78,96,85,98,3,75,16,9,25};
+bool graph_generated = false;
 Graph graph;
+nav_msgs::OccupancyGrid og_msg;
 
 void print_occupancy_grid(double og[][GRID_SIZE], int max_x, int max_y)
 {
-    for(int i = 0; i < max_x; i++)
+    for(int j = 0; j < max_y; j++)
     {
-        for(int j = 0; j < max_y; j++)
+        for(int i = 0; i < max_x; i++)
         {
             double prob = og[i][j];
             int val = int(prob / 100);
@@ -62,59 +68,96 @@ void print_occupancy_grid(double og[][GRID_SIZE], int max_x, int max_y)
     }
 }
 
+void print_map_data(const nav_msgs::OccupancyGrid& msg)
+{
+	std::cout << "================== map array ======================== \n";
+	for(int i = 0; i < GRID_SIZE*GRID_SIZE; i++)
+	{
+		int val = msg.data[i]/100;
+		std::cout << val << ",";
+	}
+	std::cout << "================== end of map array ======================== \n";
+}
+
 void generate_graph(const nav_msgs::OccupancyGrid& msg, ros::Publisher publisher)
 {
-  //ROS_INFO("before generating edges \n");
+  ROS_INFO("before generating edges \n");
   //graph.print_graph_to_console();
-  //ROS_INFO("after generating edges \n");
   graph.generate_connections(0, 30);
+  ROS_INFO("after generating edges \n");
   //graph.print_graph_to_console();
   //std::string np1 = "graph1";
   //std::string np1 = "graph2";
-  //graph.draw_in_rviz(publisher,10, 0, 1, 0, 1, "node_samples");
-  ROS_INFO("before pruning edges \n");
   graph.print_graph_to_console();
+  //drawer.update_color(0, 1, 0, 1);
+  //graph.draw_in_rviz(&drawer);
   graph.prune_invalid_connections(msg, 0.3, 0);
   ROS_INFO("after pruning edges \n");
-  //graph.print_graph_to_console();
+  graph.print_graph_to_console();
+  drawer.update_color(0, 0, 1, 1);
   graph.draw_in_rviz(&drawer);
+  graph_generated = true;
 }
 
 void map_callback(const nav_msgs::OccupancyGrid& msg)
 {
     // Assuming 100x100 map input, will complain if that doesn't match
+    // Grid is occ[x][y] increasing with axis
+    og_msg = msg;
     if(msg.info.width != GRID_SIZE || msg.info.height != GRID_SIZE) {
         ROS_INFO("actual width %d, height %d, vs GRID_SIZE %i", msg.info.width, msg.info.height, GRID_SIZE);
         ROS_INFO("Inconsistent map sizes, dumping...");
         return;
     }
 
+    drawer.update_map_details(msg.info.resolution, msg.info.origin.position.x, msg.info.origin.position.y-5);
+
     // Reformat input map
     for(int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
-        occ_grid[GRID_SIZE-1 - i/GRID_SIZE][i%GRID_SIZE] = msg.data[i];
+        occ_grid[i/GRID_SIZE][i%GRID_SIZE] = msg.data[i];
     }
-
-    #ifdef DEBUG
-        print_occupancy_grid(occ_grid, GRID_SIZE, GRID_SIZE);
-    #endif
-
+    // Place start and end nodes
+    drawer.claim(visualization_msgs::Marker::POINTS);
+    drawer.update_color(0,1,0,1);
+    drawer.update_scale(0.1, 0.1);
+    // for(int k = 0; k < checkpoints.size(); k++) {
+    //     if(graph.add_new_node(checkpoints[k].xindex, checkpoints[k].yindex)) {
+    //         drawer.add_point_scale(checkpoints[k].xindex, checkpoints[k].yindex);
+    //     }
+    // }
+    drawer.pub();
+    drawer.release();
     // Random node placement
     drawer.claim(visualization_msgs::Marker::POINTS);
-    srand(time(NULL));
-    for(int j = 0; j < NUM_SAMPLES; j) {
-        int x = rand()%GRID_SIZE;
-        int y = rand()%GRID_SIZE;
-        if(occ_grid[x][y] == 0 && graph.add_new_node(x, y)) {
-            drawer.add_point(x*0.1, y*0.1);
-            j++;
+    drawer.update_color(1,0,0,1);
+    drawer.update_scale(0.05, 0.05);
+    for(int j = 0; j < TEST_GRAPH_NODE_COUNT; j++) {
+        int x = TEST_GRAPH_X[j];
+        int y = TEST_GRAPH_Y[j];
+        Node n = Node(graph.nodeList.size(), x, y, 1);
+        if(occ_grid[x][y] == 0 && graph.add_new_node(n)) {
+        	ROS_INFO("adding node %i (%i, %i)", j, x, y);
+            drawer.add_node(n);
         }
     }
+
+    // srand(time(NULL));
+    // for(int j = 0; j < NUM_SAMPLES - 2; j) {
+    //     int x = rand()%GRID_SIZE;
+    //     int y = rand()%GRID_SIZE;
+    //     if(occ_grid[x][y] == 0 && graph.add_new_node(x, y)) {
+    //         drawer.add_point_scale(x, y);
+    //         j++;
+    //     }
+    // }
 
     drawer.pub();
     drawer.release();
 
+    //map_print(occ_grid);
+
     // Publish sampling nodes to RVIZ
-    //generate_graph(msg, marker_pub);
+    generate_graph(msg, marker_pub);
     map_drawn = true;
 }
 
@@ -124,8 +167,8 @@ void initialize_test_graph(Graph &test_graph)
 	{
 		double x_correct = TEST_GRAPH_X[i];
 		double y_correct = TEST_GRAPH_Y[i];
-
-		bool added_new_node = test_graph.add_new_node(x_correct, y_correct);
+		Node n = Node(test_graph.nodeList.size(), x_correct, y_correct ,1);
+		bool added_new_node = test_graph.add_new_node(n);
 		if(!added_new_node)
 		{
 			ROS_INFO("failed to add new node: %i at %f, %f", i, x_correct, y_correct);
@@ -239,10 +282,10 @@ bool test_edge_removal()
 	int startIndex = 0;
 	int endIndex = 1;
 
-	Node start(0,0,startIndex);
+	Node start(0,0,startIndex, 1);
 	Edge startEdge = Edge(1.41, endIndex);
 	start.addEdge(startEdge);
-	Node end(1, 1, endIndex);
+	Node end(1, 1, endIndex, 1);
 	Edge endEdge = Edge(1.41, startIndex);
 	end.addEdge(endEdge);
 
@@ -298,19 +341,21 @@ int main(int argc, char **argv)
 	    ros::spinOnce();
 	    if(map_drawn) done = true;
 	}
-	ROS_INFO("Initializing test graph");
-	initialize_test_graph(test_graph);
+	print_occupancy_grid(occ_grid, GRID_SIZE, GRID_SIZE);
+	print_map_data(og_msg);
+	// ROS_INFO("Initializing test graph");
+	// initialize_test_graph(test_graph);
 
-	ROS_INFO("Test 1 - graph properly intialized");
-	test_graph_initialization(test_graph);
+	// ROS_INFO("Test 1 - graph properly intialized");
+	// test_graph_initialization(test_graph);
 
-	ROS_INFO("Test 2 - edges properly generated");
-	double max_distance = GRID_SIZE*1.41; // distance from opposite corners 
-	test_graph.generate_connections(TEST_GRAPH_NODE_COUNT, max_distance);
-	test_graph_edge_generation(test_graph, max_distance);
+	// ROS_INFO("Test 2 - edges properly generated");
+	// double max_distance = GRID_SIZE*1.41; // distance from opposite corners 
+	// test_graph.generate_connections(TEST_GRAPH_NODE_COUNT, max_distance);
+	// test_graph_edge_generation(test_graph, max_distance);
 
-	ROS_INFO("Test 3 - testing edge removal");
-	test_edge_removal();
+	// ROS_INFO("Test 3 - testing edge removal");
+	// test_edge_removal();
 
     ROS_INFO("End of graph tests");
 	return 0;
