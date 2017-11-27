@@ -37,7 +37,7 @@ void RViz_Draw::update_map_details(float res, float originx, float originy)
 //returns the point index of the new point
 uint RViz_Draw::add_point(double x, double y)
 {
-    ROS_INFO("WARNING: volatile and unsupported");
+    //ROS_INFO("WARNING: add_point is not supported. If possible, use add_node. Otherwise, use this method with caution.");
     geometry_msgs::Point p;
     p.x = 10-x;
     p.y = y;
