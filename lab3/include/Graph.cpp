@@ -109,9 +109,9 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotS
 				nodeList[endIndex].removeEdge(endEdgeIndex);
 				//ROS_INFO("Removed edge from end node");
 			}
-			std::cout << "----------------------------------------\n"; 
+			//std::cout << "----------------------------------------\n"; 
 		}
-		std::cout << "===========================================\n"; 
+		//std::cout << "===========================================\n"; 
 	}
 }
 
