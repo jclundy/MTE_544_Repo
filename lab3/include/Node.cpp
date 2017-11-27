@@ -9,12 +9,6 @@ Node::Node()
     ypos = 0;
 }
 
-Node::Node(int indexValue, int xIndexValue, int yIndexValue)
-{
-    index = indexValue;
-    setIndex(xIndexValue, yIndexValue);
-}
-
 Node::Node(const Node &obj)
 {
 	index = obj.index;
@@ -35,6 +29,15 @@ int Node::getIndexOfEdgeWithNode(int otherNodeIndex)
 		}
 	}
 	return -1;
+}
+
+Node::Node(int indexValue, double xValue, double yValue, bool isIndex)
+{
+    index = indexValue;
+    if(isIndex)
+        setIndex((int)xValue, (int)yValue);
+    else
+        setPos(xValue, yValue);
 }
 
 void Node::addEdge(Edge edge)
