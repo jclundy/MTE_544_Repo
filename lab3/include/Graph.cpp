@@ -246,7 +246,7 @@ bool Graph::add_new_node(int x, int y) {
             return false;
     }
 
-    Node new_node = Node(i, x, y);
+    Node new_node = Node(i, x, y, 1);
     nodeList.push_back(new_node);
     return true;
 }
@@ -274,8 +274,10 @@ void Graph::draw_in_rviz(RViz_Draw *drawer)
       	lines.points.push_back(p0);
 		lines.points.push_back(p1);
             */
-        drawer->add_point_scale(x0, y0);
-        drawer->add_point_scale(x1, y1);
+        //drawer->add_point_scale(x0, y0);
+        //drawer->add_point_scale(x1, y1);
+        drawer->add_node(nodeList[i]);
+        drawer->add_node(nodeList[endNodeIndex]);
       }
     }
     drawer->pub();

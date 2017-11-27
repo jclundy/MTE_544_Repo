@@ -30,7 +30,7 @@ ros::Publisher marker_pub;
 RViz_Draw drawer;
 RViz_Draw drawer_refreshable;
 #define GRID_SIZE 100
-#define NUM_SAMPLES 500
+#define NUM_SAMPLES 200
 #define TAGID 0
 #define PI 3.14159265
 #define SIMULATION
@@ -169,7 +169,7 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
         return;
     }
 
-    drawer.update_map_details(msg.info.resolution, msg.info.origin.position.x, msg.info.origin.position.y);
+    drawer.update_map_details(msg.info.resolution, msg.info.origin.position.x, msg.info.origin.position.y-5);
 
     // Reformat input map
     for(int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
@@ -361,17 +361,17 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
         //if edgelist is empty, next iteration loop, iterate again
         if(best_node->edgeList.size()==0)
         {
-            //ROS_INFO("no edges");
+            ROS_INFO("no edges");
         }
         else
         {
 
-            //ROS_INFO("Starting neighbour loop");
+            ROS_INFO("Starting neighbour loop");
             //process each neighbour
             for(int j = 0; j < best_node->edgeList.size(); j++){
                 Node* neighbour = nodes[best_node->edgeList[j].endNodeIndex];
 
-                //ROS_INFO("checking if node is in closed set");
+                ROS_INFO("checking if node is in closed set");
                 //check if node is in closed set
                 bool found = 0;
                 for(int k = 0; k < closed_set.size() && !found; k++){
@@ -381,10 +381,10 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
                 }
                 if (found)
                 {
-                    //ROS_INFO("node found in closed set, continuing");
+                    ROS_INFO("node found in closed set, continuing");
                     continue;
                 }else{
-                    //ROS_INFO("node not found in closed set");
+                    ROS_INFO("node not found in closed set");
                 }
 
                 //distance to go
@@ -392,7 +392,7 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
 
                 //current distance
                 dcur = best_node->current_cost + best_node->edgeList[j].cost;
-                //ROS_INFO("check if node is in open set and the current distance is lower than previous one");
+                ROS_INFO("check if node is in open set and the current distance is lower than previous one");
                 //check if node is in open set and the current distance is lower than previous one
                 for(int m = 0; m < open_set.size() && !found; m++){
 
@@ -406,7 +406,7 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
                     }
                 }
                 if(!found){
-                    //ROS_INFO("was not found, add to open set");
+                    ROS_INFO("was not found, add to open set");
                     //add endNodeIndex to openSet
                     for(int i = 0; i < nodes.size(); i++){
                         if (neighbour->index == nodes[i]->index){
@@ -419,13 +419,13 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
                 }
             }
 
-            //ROS_INFO("done neighbour loop. Mindex:%d", mindex);
+            ROS_INFO("done neighbour loop. Mindex:%d", mindex);
         }
         //take best_node out of openset
         open_set[mindex] = open_set.back();
         open_set.pop_back();
     }
-    //ROS_INFO("Done iterating through graph, finding waypoints");
+    ROS_INFO("Done iterating through graph, finding waypoints");
 
     Node* temp = best_node;
     while (temp->back_pointer_index != -1)
@@ -434,10 +434,10 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
       temp = nodes[temp->back_pointer_index];
     }
 
-    //ROS_INFO("Finished A* Path:");
+    ROS_INFO("Finished A* Path:");
     for (int i = 0; i < spath.size(); i++)
     {
-        //ROS_INFO("index %d", spath[i]->index);
+        ROS_INFO("index %d", spath[i]->index);
     }
 }
 
@@ -446,9 +446,9 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
 int main(int argc, char **argv)
 {
     // Set start and end points
-    Node startNode = Node(1, 4, 0);
-    Node midNode = Node(2, 8, -4);
-    Node endNode = Node(3, 8, 0);
+    Node startNode = Node(1, 4, 0, 0);
+    Node midNode = Node(2, 8, -4, 0);
+    Node endNode = Node(3, 8, 0, 0);
 
     checkpoints.push_back(startNode);
     checkpoints.push_back(midNode);
@@ -459,9 +459,9 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
     ros::NodeHandle n_refreshable;
 
-    Node graphNode(0,0,0);
+    Node graphNode(0,0,0,0);
     ROS_INFO("defined a new node index : %d,%d x: %f y: %f", graphNode.xindex, graphNode.yindex, graphNode.xpos, graphNode.ypos);
-    drawer = RViz_Draw(n); //Initialize drawer for rviz
+    drawer = RViz_Draw(n, "visualization_marker", false); //Initialize drawer for rviz
     ROS_INFO("----Starting----");
 
     //Subscribe to the desired topics and assign callbacks

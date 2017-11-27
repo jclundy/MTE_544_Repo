@@ -12,10 +12,9 @@ RViz_Draw::RViz_Draw(ros::NodeHandle n, std::string marker_topic, bool latch)
     objs.header.stamp = ros::Time::now();
     objs.ns = "lab3";
     objs.action = visualization_msgs::Marker::ADD;
-    objs.pose.orientation.z = 1; //-0.7071; //to match amcl map
-    //objs.pose.orientation.w = 0.7071;
-    objs.pose.position.x = -5;
-    objs.pose.position.y = 5;
+    objs.pose.orientation.z = 1;
+    objs.pose.position.x = 10;
+    objs.pose.position.y = 0;
     objs.id = 0;
 
     //objs formatting
@@ -57,7 +56,17 @@ void RViz_Draw::move_point(int point_id, double x, double y)
 
 void RViz_Draw::add_point_scale(double x, double y)
 {
-    add_point(x*resolution, y*resolution);
+    add_point(x*resolution, y*resolution-5);
+}
+
+uint RViz_Draw::add_node(Node n)
+{
+    geometry_msgs::Point p;
+    p.x = 10-n.xpos;
+    p.y = n.ypos;
+    p.z = 0;
+    objs.points.push_back(p);
+    return objs.points.size() - 1;
 }
 
 void RViz_Draw::update_scale(double scalex, double scaley)

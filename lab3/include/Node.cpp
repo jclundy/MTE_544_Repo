@@ -9,10 +9,13 @@ Node::Node()
     ypos = 0;
 }
 
-Node::Node(int indexValue, int xValue, int yValue)
+Node::Node(int indexValue, double xValue, double yValue, bool isIndex)
 {
     index = indexValue;
-    setPos(xValue, yValue);
+    if(isIndex)
+        setIndex((int)xValue, (int)yValue);
+    else
+        setPos(xValue, yValue);
 }
 
 void Node::addEdge(Edge edge)
