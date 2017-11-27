@@ -223,7 +223,7 @@ bool Graph::isConnectionValid(int startIndex, int endIndex, nav_msgs::OccupancyG
 			// calculate index of tiles avbove/below
 			int modifiedXIndex = xIndex + j * checkHorizontal;
 			int modifiedYIndex = yIndex + j * checkVertical;
-			int mapDataIndex = modifiedXIndex*map.info.width + modifiedYIndex;  //TODO THIS SHOULD BE PASSED IN
+			int mapDataIndex = modifiedXIndex + modifiedYIndex*map.info.width;  //TODO THIS SHOULD BE PASSED IN
 			// skip check if index is out of bounds
 			int size = map.data.size();
 			if(mapDataIndex >= size)
