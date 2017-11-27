@@ -30,7 +30,7 @@ ros::Publisher marker_pub;
 RViz_Draw drawer;
 RViz_Draw drawer_refreshable;
 #define GRID_SIZE 100
-#define NUM_SAMPLES 100
+#define NUM_SAMPLES 500
 #define TAGID 0
 #define PI 3.14159265
 #define SIMULATION
@@ -198,13 +198,20 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
     for(int j = 0; j < NUM_SAMPLES - 2; j) {
         int x = rand()%GRID_SIZE;
         int y = rand()%GRID_SIZE;
-        n = Node(graph.nodeList.size()-1, x, y, 1);
+        n = Node(graph.nodeList.size(), x, y, 1);
         if(occ_grid[x][y] == 0 && graph.add_new_node(n)) {
             drawer.add_node(n);
             j++;
         }
     }
 
+/*
+    ///L test stuff
+    for (int L = 0; L < graph.nodeList.size(); L++){
+        ROS_INFO ("LIOR TEST::::    NodeList[ %i ] \t = %i", L, graph.nodeList[L].index);
+    }
+    ///end L test stuff
+*/
     drawer.pub();
     drawer.release();
 
@@ -302,7 +309,7 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
     ROS_INFO("Beginning A*");
     ROS_INFO("start node index: %d", nodes[start_index]->index);
     ROS_INFO("End node index: %d", nodes[end_index]->index);
-    ROS_INFO("start node x: %f", nodes[end_index]->xindex);
+    ROS_INFO("start node x index: %d", nodes[end_index]->xindex);
     //declarations
     std::vector<Node*> open_set;
     std::vector<Node*> closed_set;
@@ -408,17 +415,14 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
                         }
                     }
                 }
-                if(!found){
+                if(!found)
+                {
                     ROS_INFO("was not found, add to open set");
                     //add endNodeIndex to openSet
-                    for(int i = 0; i < nodes.size(); i++){
-                        if (neighbour->index == nodes[i]->index){
-                            neighbour->back_pointer_index = best_node->index;
-                            neighbour->lower_bound_cost = dtogo + dcur;
-                            neighbour->current_cost = dcur;
-                            open_set.push_back(neighbour);
-                        }
-                    }
+                    neighbour->back_pointer_index = best_node->index;
+                    neighbour->lower_bound_cost = dtogo + dcur;
+                    neighbour->current_cost = dcur;
+                    open_set.push_back(neighbour);
                 }
             }
 
@@ -450,9 +454,9 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
 int main(int argc, char **argv)
 {
     // Set start and end points
-    Node startNode = Node(1, 4, 0, 0);
-    Node midNode = Node(2, 8, -4, 0);
-    Node endNode = Node(3, 8, 0, 0);
+    Node startNode = Node(0, 4, 0, 0);
+    Node midNode = Node(1, 8, -4, 0);
+    Node endNode = Node(2, 8, 0, 0);
 
     checkpoints.push_back(startNode);
     checkpoints.push_back(midNode);
@@ -510,7 +514,7 @@ int main(int argc, char **argv)
   //  Node node3(3, -10, 10);
   //  Node node4(4, -10, -10);
 
-    astar(nodeList, waypoints, 0, 25);
+    astar(nodeList, waypoints, startNode.index, midNode.index);
 /*
     waypoints.push_back(&node0);
     waypoints.push_back(&node1);
