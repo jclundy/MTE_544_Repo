@@ -174,7 +174,7 @@ bool Graph::isConnectionValid(int startIndex, int endIndex, nav_msgs::OccupancyG
 	int y1 = nodeList[endIndex].yindex;
 	//ROS_INFO("End Node %i (%i, %i)", endIndex, x1, y1);
 
-	ROS_INFO("Start Node %i (%i, %i); End Node %i (%i, %i)", startIndex, x0, y0, endIndex, x1, y1);
+	//ROS_INFO("Start Node %i (%i, %i); End Node %i (%i, %i)", startIndex, x0, y0, endIndex, x1, y1);
 	std::vector<int> xTileIndices;
 	std::vector<int> yTileIndices;
 	bresenham(x0, y0, x1, y1, xTileIndices, yTileIndices);
@@ -185,7 +185,7 @@ bool Graph::isConnectionValid(int startIndex, int endIndex, nav_msgs::OccupancyG
 	int padding = 0;
 	bool checkVertical = 0;
 	bool checkHorizontal = 0;
-	/*if(robotSize > mapResolution)
+	if(robotSize > mapResolution)
 	{
 		// need to check additional tiles
 		int ratio = robotSize/mapResolution;
@@ -204,40 +204,39 @@ bool Graph::isConnectionValid(int startIndex, int endIndex, nav_msgs::OccupancyG
 			// edge is roughly vertical, perform check on tiles to the left and right of center tile
 			checkHorizontal = 1;
 		}
-	}*/
+	}
 	for(int i = 0; i < numberOfTiles; i++)
 	{
 		int xIndex = xTileIndices[i];
 		int yIndex = yTileIndices[i];
-		int mapDataIndex = xIndex *map.info.width + yIndex;
-		int value = map.data[mapDataIndex];
+		//int mapDataIndex = xIndex *map.info.width + yIndex;
+		//int value = map.data[mapDataIndex];
 		//ROS_INFO("X,Y (%i, %i), Map Index %i with value %i", xIndex, yIndex, mapDataIndex,value);
-		if(map.data[mapDataIndex] > isEmptyValue)
+		/*if(map.data[mapDataIndex] > isEmptyValue)
 		{
 			//ROS_INFO("Invalid Connection %i, %i, with value %d", nodeList[startIndex].index, nodeList[endIndex].index, map.data[mapDataIndex]);
 			return false;
-		}
+		}*/
 		// iterate through tiles adjacent to
-		/*for(int j = -padding; j<=padding; j++)
+		for(int j = -padding; j<=padding; j++)
 		{
 			// calculate index of tiles avbove/below
 			int modifiedXIndex = xIndex + j * checkHorizontal;
 			int modifiedYIndex = yIndex + j * checkVertical;
-			int mapDataIndex = modifiedXIndex + modifiedYIndex * 100;  //TODO THIS SHOULD BE PASSED IN
+			int mapDataIndex = modifiedXIndex*map.info.width + modifiedYIndex;  //TODO THIS SHOULD BE PASSED IN
 			// skip check if index is out of bounds
 			int size = map.data.size();
-			if(mapDataIndex > size - 1)
+			if(mapDataIndex >= size)
 			{
 				////ROS_INFO("mapDataIndex %i out of bounds %i",mapDataIndex, size);
-				continue;
+				return false;
 			}
-
 			// if the value at mapDataIndex is occupied, there is a collision
-			if(map.data[mapDataIndex] >= isEmptyValue)
+			if(map.data[mapDataIndex] > isEmptyValue)
 			{
 				return false;
 			}
-		}*/
+		}
 	}
 	// no obstacles were detected along the given edge
 	return true;
