@@ -179,7 +179,7 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
     Node n;
 
     // Place start and end nodes
-    drawer.claim(visualization_msgs::Marker::POINTS);
+    /*drawer.claim(visualization_msgs::Marker::POINTS);
     drawer.update_color(0,1,0,1);
     drawer.update_scale(0.1, 0.1);
     for(int k = 0; k < checkpoints.size(); k++) {
@@ -188,7 +188,7 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
         }
     }
     drawer.pub();
-    drawer.release();
+    drawer.release();*/
 
     // Random node placement
     drawer.claim(visualization_msgs::Marker::POINTS);
