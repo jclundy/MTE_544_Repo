@@ -27,7 +27,7 @@ public:
     void setPos(double x, double y);
 
     Node();
-	Node(int indexValue, int xValue, int yValue);
+	Node(int indexValue, int xIndexValue, int yIndexValue);
 	Node(const Node &obj);
 
 };

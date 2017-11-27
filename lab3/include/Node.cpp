@@ -9,10 +9,10 @@ Node::Node()
     ypos = 0;
 }
 
-Node::Node(int indexValue, int xValue, int yValue)
+Node::Node(int indexValue, int xIndexValue, int yIndexValue)
 {
     index = indexValue;
-    setPos(xValue, yValue);
+    setIndex(xIndexValue, yIndexValue);
 }
 
 Node::Node(const Node &obj)
@@ -79,6 +79,6 @@ void Node::setPos(double x, double y)
 {
     xpos = x;
     ypos = y;
-    xindex = x*10;
-    yindex = (y+5)*10;
+    xindex = int(x*10);
+    yindex = int((y+5)*10);
 }

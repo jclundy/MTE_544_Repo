@@ -30,7 +30,7 @@ ros::Publisher marker_pub;
 RViz_Draw drawer;
 RViz_Draw drawer_refreshable;
 #define GRID_SIZE 100
-#define NUM_SAMPLES 500
+#define NUM_SAMPLES 100
 #define TAGID 0
 #define PI 3.14159265
 #define SIMULATION
@@ -444,10 +444,13 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
 
 int main(int argc, char **argv)
 {
-    // Set start and end points
-    Node startNode = Node(1, 4, 0);
-    Node midNode = Node(2, 8, -4);
-    Node endNode = Node(3, 8, 0);
+    Node startNode, midNode, endNode;  
+    startNode.setPos(0, 0);
+    startNode.index = 1;
+    midNode.setPos(8, -4);
+    midNode.index = 2;
+    endNode.setPos(8, 0);
+    endNode.index = 3;
 
     checkpoints.push_back(startNode);
     checkpoints.push_back(midNode);
