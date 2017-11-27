@@ -61,19 +61,26 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotS
 	// for a valid connection, mark as checked (on current node, and as well as on endpoint node)
 	// remove invalid connections
 //#ifdef DEBUG
-	ROS_INFO("Pruning Edges");
+	////ROS_INFO("Pruning Edges");
+	////ROS_INFO("Map width: %i, Map heigth: %i", map.info.width, map.info.height);
 //#endif
 	for(int startIndex = 0; startIndex < nodeList.size(); startIndex++)
 	{
+		//ROS_INFO("Node %i", startIndex);
 		for(int startEdgeIndex = 0; startEdgeIndex < nodeList[startIndex].edgeList.size(); startEdgeIndex++)
 		{
 			// if edge has already been checked skip to next edge
+			//ROS_INFO("Edge %i", startEdgeIndex);
 			int endIndex = nodeList[startIndex].edgeList[startEdgeIndex].endNodeIndex;
 
+			//ROS_INFO("End Node %i", endIndex);
+
+			//ROS_INFO("Edge %i", startEdgeIndex);
 			if(nodeList[startIndex].edgeList[startEdgeIndex].validated) continue;
 
 			// find corresponding edge in other node
 			int endEdgeIndex = nodeList[endIndex].getIndexOfEdgeWithNode(startIndex);
+			//ROS_INFO("Edge in EndNode %i", endEdgeIndex);
 			// skip if edge to given node is not found
 			if(endEdgeIndex < 0)
 			{
@@ -82,21 +89,29 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotS
 				continue;
 			}
 			// check if the edge results in a collision
-
+			//ROS_INFO("Checking for collision");
 			bool isCollisionFree = isConnectionValid(startIndex, endIndex, map, robotSize, isEmptyValue);
 			if(isCollisionFree)
 			{
 				// mark edge as validated
+				//ROS_INFO("Collision Free");
 				nodeList[startIndex].edgeList[startEdgeIndex].validated = true;
+				//ROS_INFO("Marked edge on start node as validated");
 				// mark corresponding edge in other node as validated
 				nodeList[endIndex].edgeList[endEdgeIndex].validated = true;
+				//ROS_INFO("Marked edge on end node as validated");
 			} else {
 				// remove edges from both start and end nodes
-				//ROS_INFO("Removing Invalid Connection %i, %i", i, endIndex);
+				////ROS_INFO("Removing Invalid Connection %i, %i", i, endIndex);
+				//ROS_INFO("Has Collision");
 				nodeList[startIndex].removeEdge(startEdgeIndex);
+				//ROS_INFO("Removed edge from start node");
 				nodeList[endIndex].removeEdge(endEdgeIndex);
+				//ROS_INFO("Removed edge from end node");
 			}
+			std::cout << "----------------------------------------\n"; 
 		}
+		std::cout << "===========================================\n"; 
 	}
 }
 
@@ -124,13 +139,17 @@ bool Graph::isConnectionValid(int startIndex, int endIndex, nav_msgs::OccupancyG
 
 	int x0 = nodeList[startIndex].xindex;
 	int y0 = nodeList[startIndex].yindex;
+	//ROS_INFO("Start Node %i (%i, %i)", startIndex, x0, y0);
 
 	int x1 = nodeList[endIndex].xindex;
 	int y1 = nodeList[endIndex].yindex;
+	//ROS_INFO("End Node %i (%i, %i)", endIndex, x1, y1);
 
+	ROS_INFO("Start Node %i (%i, %i); End Node %i (%i, %i)", startIndex, x0, y0, endIndex, x1, y1);
 	std::vector<int> xTileIndices;
 	std::vector<int> yTileIndices;
 	bresenham(x0, y0, x1, y1, xTileIndices, yTileIndices);
+	//ROS_INFO("Running bresenham line algorithm");
 
 	int numberOfTiles = xTileIndices.size();
 
@@ -161,7 +180,9 @@ bool Graph::isConnectionValid(int startIndex, int endIndex, nav_msgs::OccupancyG
 	{
 		int xIndex = xTileIndices[i];
 		int yIndex = yTileIndices[i];
-		int mapDataIndex = xIndex + yIndex * map.info.width;
+		int mapDataIndex = xIndex *map.info.width + yIndex;
+		int value = map.data[mapDataIndex];
+		//ROS_INFO("X,Y (%i, %i), Map Index %i with value %i", xIndex, yIndex, mapDataIndex,value);
 		if(map.data[mapDataIndex] > isEmptyValue)
 		{
 			//ROS_INFO("Invalid Connection %i, %i, with value %d", nodeList[startIndex].index, nodeList[endIndex].index, map.data[mapDataIndex]);
@@ -178,7 +199,7 @@ bool Graph::isConnectionValid(int startIndex, int endIndex, nav_msgs::OccupancyG
 			int size = map.data.size();
 			if(mapDataIndex > size - 1)
 			{
-				ROS_INFO("mapDataIndex %i out of bounds %i",mapDataIndex, size);
+				////ROS_INFO("mapDataIndex %i out of bounds %i",mapDataIndex, size);
 				continue;
 			}
 
@@ -243,8 +264,8 @@ bool Graph::add_new_node(Node n) {
 
 void Graph::draw_in_rviz(RViz_Draw *drawer)
 {
-    drawer->claim(visualization_msgs::Marker::LINE_STRIP);
-    drawer->update_color(0, 0, 1, 1);
+    drawer->claim(visualization_msgs::Marker::LINE_LIST);
+    //drawer->update_color(0, 0, 1, 1);
     for (int i = 0; i < nodeList.size(); i++)
     {
       for(int j = 0; j < nodeList[i].edgeList.size(); j++)
@@ -280,13 +301,15 @@ void Graph::print_graph_to_console()
 {
 	for(int i = 0; i < nodeList.size(); i++)
 	{
-		//ROS_INFO("Node %i ", nodeList[i].index);
-		//ROS_INFO("X %f, Y %f \n", nodeList[i].x, nodeList[i].y);
 		int size = nodeList[i].edgeList.size();
-		//ROS_INFO("Number of edges: %i \n", size);
-		/*for(int j = 0; j < size; j++)
+		//ROS_INFO("Node: %i;  XY: (%i, %i); %i edges", nodeList[i].index, nodeList[i].xindex, nodeList[i].yindex, size);
+		std::cout << "Node: " << nodeList[i].index << " XY (" <<  nodeList[i].xindex << "," << nodeList[i].yindex << ")  Connections : ";
+		for(int j = 0; j < size; j++)
 		{
-			ROS_INFO("Edge to Node %i, cost %f \n", nodeList[i].edgeList[j].endNodeIndex, nodeList[i].edgeList[j].cost);
-		}*/
+			//ROS_INFO("Edge to Node %i, cost %f \n", nodeList[i].edgeList[j].endNodeIndex, nodeList[i].edgeList[j].cost);
+			std::cout << nodeList[i].edgeList[j].endNodeIndex;
+			if(j < size - 1) std::cout << ',';
+		}
+		std::cout << ";\n";
 	}
 }
