@@ -14,7 +14,6 @@ public:
     void update_map_details(float res, float originx, float originy);
     uint add_point(double x, double y);
     void move_point(int point_id, double x, double y);
-    void add_point_scale(double x, double y);
     uint add_node(Node n);
     void update_scale(double scalex, double scaley);
     void update_color(double colorr, double colorg, double colorb, double colora);

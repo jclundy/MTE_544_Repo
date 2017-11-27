@@ -238,16 +238,14 @@ void Graph::bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::
     }
 }
 
-
-bool Graph::add_new_node(int x, int y) {
-	int i;
+bool Graph::add_new_node(Node n) {
+    int i;
     for(i = 0; i<nodeList.size(); i++) {
-        if(nodeList[i].xindex == x && nodeList[i].yindex == y)
+        if(nodeList[i].xindex == n.xindex && nodeList[i].yindex == n.yindex)
             return false;
     }
 
-    Node new_node = Node(i, x, y, 1);
-    nodeList.push_back(new_node);
+    nodeList.push_back(n);
     return true;
 }
 

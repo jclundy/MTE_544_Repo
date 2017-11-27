@@ -37,6 +37,7 @@ void RViz_Draw::update_map_details(float res, float originx, float originy)
 //returns the point index of the new point
 uint RViz_Draw::add_point(double x, double y)
 {
+    ROS_INFO("WARNING: volatile and unsupported");
     geometry_msgs::Point p;
     p.x = 10-x;
     p.y = y;
@@ -52,11 +53,6 @@ void RViz_Draw::move_point(int point_id, double x, double y)
     p.y = y;
     p.z = 0;
     objs.points[point_id] = p;
-}
-
-void RViz_Draw::add_point_scale(double x, double y)
-{
-    add_point(x*resolution, y*resolution-5);
 }
 
 uint RViz_Draw::add_node(Node n)

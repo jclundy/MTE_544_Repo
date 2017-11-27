@@ -30,7 +30,7 @@ ros::Publisher marker_pub;
 RViz_Draw drawer;
 RViz_Draw drawer_refreshable;
 #define GRID_SIZE 100
-#define NUM_SAMPLES 200
+#define NUM_SAMPLES 100
 #define TAGID 0
 #define PI 3.14159265
 #define SIMULATION
@@ -176,13 +176,15 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
         occ_grid[i/GRID_SIZE][i%GRID_SIZE] = msg.data[i];
     }
 
+    Node n;
+
     // Place start and end nodes
     drawer.claim(visualization_msgs::Marker::POINTS);
     drawer.update_color(0,1,0,1);
     drawer.update_scale(0.1, 0.1);
     for(int k = 0; k < checkpoints.size(); k++) {
-        if(graph.add_new_node(checkpoints[k].xindex, checkpoints[k].yindex)) {
-            drawer.add_point_scale(checkpoints[k].xindex, checkpoints[k].yindex);
+        if(graph.add_new_node(checkpoints[k])) {
+            drawer.add_node(checkpoints[k]);
         }
     }
     drawer.pub();
@@ -196,8 +198,9 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
     for(int j = 0; j < NUM_SAMPLES - 2; j) {
         int x = rand()%GRID_SIZE;
         int y = rand()%GRID_SIZE;
-        if(occ_grid[x][y] == 0 && graph.add_new_node(x, y)) {
-            drawer.add_point_scale(x, y);
+        n = Node(graph.nodeList.size()-1, x, y, 1);
+        if(occ_grid[x][y] == 0 && graph.add_new_node(n)) {
+            drawer.add_node(n);
             j++;
         }
     }
@@ -430,8 +433,9 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
     Node* temp = best_node;
     while (temp->back_pointer_index != -1)
     {
-      spath.push_back(temp);
-      temp = nodes[temp->back_pointer_index];
+        ROS_INFO("test %i", temp->back_pointer_index);
+        spath.push_back(temp);
+        temp = nodes[temp->back_pointer_index];
     }
 
     ROS_INFO("Finished A* Path:");
@@ -534,7 +538,7 @@ int main(int argc, char **argv)
     drawer.update_scale(0.2, 0.2);
     drawer.update_color(1,0,0,1);
     for(int i = 0; i < num_waypoints; i++) {
-       drawer.add_point(waypoints[i]->xindex, waypoints[i]->yindex);
+       drawer.add_node(*waypoints[i]);
     }
     drawer.pub();
     drawer.release();
@@ -572,7 +576,7 @@ int main(int argc, char **argv)
         //draw next waypoint
         drawer_refreshable.claim(visualization_msgs::Marker::POINTS);
         drawer_refreshable.update_color(0.1, 1, 0.1, 1);
-        drawer_refreshable.add_point(waypoints[wpt_ind]->xindex, waypoints[wpt_ind]->yindex);
+        drawer_refreshable.add_node(*waypoints[wpt_ind]);
         drawer_refreshable.pub();
         drawer_refreshable.release();
 

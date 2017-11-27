@@ -27,7 +27,7 @@ public:
 
 	void prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotSize, double isEmptyValue);
 
-    bool add_new_node(int x, int y);
+    bool add_new_node(Node n);
 
     void draw_in_rviz(RViz_Draw *drawer);
 
