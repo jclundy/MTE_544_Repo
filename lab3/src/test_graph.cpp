@@ -83,7 +83,7 @@ void generate_graph(const nav_msgs::OccupancyGrid& msg, ros::Publisher publisher
 {
   ROS_INFO("before generating edges \n");
   //graph.print_graph_to_console();
-  graph.generate_connections(0, 30);
+  graph.generate_connections(0, 100);
   ROS_INFO("after generating edges \n");
   //graph.print_graph_to_console();
   //std::string np1 = "graph1";
@@ -92,6 +92,7 @@ void generate_graph(const nav_msgs::OccupancyGrid& msg, ros::Publisher publisher
   //drawer.update_color(0, 1, 0, 1);
   //graph.draw_in_rviz(&drawer);
   graph.prune_invalid_connections(msg, 0.3, 0);
+  
   ROS_INFO("after pruning edges \n");
   graph.print_graph_to_console();
   drawer.update_color(0, 0, 1, 1);
@@ -120,34 +121,29 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
     drawer.claim(visualization_msgs::Marker::POINTS);
     drawer.update_color(0,1,0,1);
     drawer.update_scale(0.1, 0.1);
-    // for(int k = 0; k < checkpoints.size(); k++) {
-    //     if(graph.add_new_node(checkpoints[k].xindex, checkpoints[k].yindex)) {
-    //         drawer.add_point_scale(checkpoints[k].xindex, checkpoints[k].yindex);
-    //     }
-    // }
-    drawer.pub();
-    drawer.release();
+
     // Random node placement
-    drawer.claim(visualization_msgs::Marker::POINTS);
-    drawer.update_color(1,0,0,1);
-    drawer.update_scale(0.05, 0.05);
-    for(int j = 0; j < TEST_GRAPH_NODE_COUNT; j++) {
-        int x = TEST_GRAPH_X[j];
-        int y = TEST_GRAPH_Y[j];
+    srand(time(NULL));
+    for(int j = 0; j < NUM_SAMPLES - 2; j) {
+        int x = rand()%GRID_SIZE;
+        int y = rand()%GRID_SIZE;
         Node n = Node(graph.nodeList.size(), x, y, 1);
         if(occ_grid[x][y] == 0 && graph.add_new_node(n)) {
-        	ROS_INFO("adding node %i (%i, %i)", j, x, y);
             drawer.add_node(n);
+            j++;
         }
     }
 
-    // srand(time(NULL));
-    // for(int j = 0; j < NUM_SAMPLES - 2; j) {
-    //     int x = rand()%GRID_SIZE;
-    //     int y = rand()%GRID_SIZE;
-    //     if(occ_grid[x][y] == 0 && graph.add_new_node(x, y)) {
-    //         drawer.add_point_scale(x, y);
-    //         j++;
+    // drawer.claim(visualization_msgs::Marker::POINTS);
+    // drawer.update_color(1,0,0,1);
+    // drawer.update_scale(0.05, 0.05);
+    // for(int j = 0; j < TEST_GRAPH_NODE_COUNT; j++) {
+    //     int x = TEST_GRAPH_X[j];
+    //     int y = TEST_GRAPH_Y[j];
+    //     Node n = Node(graph.nodeList.size(), x, y, 1);
+    //     if(occ_grid[x][y] == 0 && graph.add_new_node(n)) {
+    //     	ROS_INFO("adding node %i (%i, %i)", j, x, y);
+    //         drawer.add_node(n);
     //     }
     // }
 
@@ -341,9 +337,14 @@ int main(int argc, char **argv)
 	    ros::spinOnce();
 	    if(map_drawn) done = true;
 	}
-	print_occupancy_grid(occ_grid, GRID_SIZE, GRID_SIZE);
-	print_map_data(og_msg);
-	// ROS_INFO("Initializing test graph");
+	//print_occupancy_grid(occ_grid, GRID_SIZE, GRID_SIZE);
+	//print_map_data(og_msg);
+
+	bool allEdgesValidated = graph.areAllEdgesValidated();
+	ROS_INFO("all edges validated: %i", allEdgesValidated);
+
+
+	ROS_INFO("Initializing test graph");
 	// initialize_test_graph(test_graph);
 
 	// ROS_INFO("Test 1 - graph properly intialized");
