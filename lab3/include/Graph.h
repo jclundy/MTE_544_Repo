@@ -35,6 +35,8 @@ public:
 
     double calculate_distance(int i, int j);
 
+    bool areAllEdgesValidated();
+
 private:
 	double calculate_distance(Node &start, Node &end);
 

@@ -67,7 +67,7 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotS
 	for(int startIndex = 0; startIndex < nodeList.size(); startIndex++)
 	{
 		//ROS_INFO("Node %i", startIndex);
-		for(int startEdgeIndex = 0; startEdgeIndex < nodeList[startIndex].edgeList.size(); startEdgeIndex++)
+		for(int startEdgeIndex = nodeList[startIndex].edgeList.size() -1; startEdgeIndex >= 0; startEdgeIndex--)
 		{
 			// if edge has already been checked skip to next edge
 			//ROS_INFO("Edge %i", startEdgeIndex);
@@ -100,7 +100,8 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotS
 				// mark corresponding edge in other node as validated
 				nodeList[endIndex].edgeList[endEdgeIndex].validated = true;
 				//ROS_INFO("Marked edge on end node as validated");
-			} else {
+			} 
+			else {
 				// remove edges from both start and end nodes
 				////ROS_INFO("Removing Invalid Connection %i, %i", i, endIndex);
 				//ROS_INFO("Has Collision");
@@ -113,8 +114,36 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotS
 		}
 		//std::cout << "===========================================\n"; 
 	}
+	for(int startIndex = 0; startIndex < nodeList.size(); startIndex++)
+	{
+		for(int startEdgeIndex = 0; startEdgeIndex < nodeList[startIndex].edgeList.size(); startEdgeIndex++)
+		{
+			if(!nodeList[startIndex].edgeList[startEdgeIndex].validated)
+			{
+				int endIndex = nodeList[startIndex].edgeList[startEdgeIndex].endNodeIndex;
+				int endEdgeIndex = nodeList[endIndex].getIndexOfEdgeWithNode(startIndex);
+				
+				nodeList[startIndex].removeEdge(startEdgeIndex);
+				nodeList[endIndex].removeEdge(endEdgeIndex);
+			}
+		}
+	}
 }
 
+bool Graph::areAllEdgesValidated()
+{
+	for(int i = 0; i < nodeList.size(); i++)
+	{
+		for (int j = 0; j < nodeList[i].edgeList.size(); j++)
+		{
+			if(!nodeList[i].edgeList[j].validated)
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}
 
 
 bool Graph::isConnectionValid(int startIndex, int endIndex, nav_msgs::OccupancyGrid& map, double robotSize, int isEmptyValue)
