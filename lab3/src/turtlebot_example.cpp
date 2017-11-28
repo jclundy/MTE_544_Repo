@@ -37,9 +37,9 @@ RViz_Draw drawer_refreshable;
 //#define SIMULATION
 #define DEBUG
 
-float xc = 3;
-float yc = 0;
-float custom_width = 3;
+float xc = -3.5;
+float yc = 1;
+float custom_width = 10;
 float map_width = 10;
 
 float ips_x = 0;
@@ -55,6 +55,7 @@ bool graph_generated = false;
 std::vector<Node> checkpoints;
 
 #ifdef SIMULATION
+
 //Callback function for the Position topic (SIMULATION)
 void pose_callback(const gazebo_msgs::ModelStates& msg)
 {
@@ -244,10 +245,10 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
 
 float set_speed(float target_x, float target_y, float prev_theta_error, ros::Publisher velocity_publisher)
 {
-    float top_speed = 1;
-    float kp_theta = 1;
-    float kd_theta = 0.5;
-    float kp_v = 1;
+    float top_speed = 0.25;
+    float kp_theta = 0.5;
+    float kd_theta = 0.25;
+    float k_v = 0.5;
     //Velocity control variable
     float theta_ref = atan2(target_y - ips_y, target_x - ips_x);
     float theta_error = theta_ref - ips_yaw;
@@ -268,7 +269,7 @@ float set_speed(float target_x, float target_y, float prev_theta_error, ros::Pub
 
 
     float cos_error = cos (theta_error);
-    float forward_v = std::pow(cos_error, 13) * kp_v * dist_error;
+    float forward_v = std::pow(cos_error, 13) * k_v * dist_error;
     if (forward_v > top_speed)
         forward_v = top_speed;
     if (forward_v < -top_speed)
@@ -482,7 +483,7 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
 int main(int argc, char **argv)
 {
     // Set start and end points
-    Node startNode = Node(0, 0, 0, 0);
+    Node startNode = Node(0, 4, 0, 0);
     Node midNode = Node(1, 8, -4, 0);
     Node endNode = Node(2, 8, 0, 0);
 
