@@ -33,8 +33,13 @@ RViz_Draw drawer_refreshable;
 #define NUM_SAMPLES 500
 #define TAGID 0
 #define PI 3.14159265
-#define SIMULATION
+//#define SIMULATION
 #define DEBUG
+
+float xc = 3;
+float yc = 0;
+float custom_width = 3;
+float map_width = 10;
 
 float ips_x = 0;
 float ips_y = 0;
@@ -65,8 +70,14 @@ void pose_callback(const gazebo_msgs::ModelStates& msg)
 
 void pose_callback(const geometry_msgs::PoseWithCovarianceStamped& msg)
 {
-    ips_x X = msg.pose.pose.position.x; // Robot X psotition
-    ips_y Y = msg.pose.pose.position.y; // Robot Y psotition
+    ips_x = msg.pose.pose.position.x; // Robot X psotition
+    ips_y = msg.pose.pose.position.y; // Robot Y psotition
+    ips_x -= xc;
+    ips_y -= yc;
+    float scaling_factor = custom_width/map_width;
+    ips_x *= scaling_factor;
+    ips_y *= scaling_factor;
+    
     ips_yaw = tf::getYaw(msg.pose.pose.orientation); // Robot Yaw
     //ROS_DEBUG("pose_callback X: %f Y: %f Yaw: %f", X, Y, Yaw);
 }
