@@ -40,7 +40,7 @@ uint RViz_Draw::add_point(double x, double y)
     //ROS_INFO("WARNING: add_point is not supported. If possible, use add_node. Otherwise, use this method with caution.");
     geometry_msgs::Point p;
     p.x = x;
-    p.y = -y;
+    p.y = y;
     p.z = 0;
     objs.points.push_back(p);
     return objs.points.size() - 1;
@@ -50,7 +50,7 @@ void RViz_Draw::move_point(int point_id, double x, double y)
 {
     geometry_msgs::Point p;
     p.x = x;
-    p.y = -y;
+    p.y = y;
     p.z = 0;
     objs.points[point_id] = p;
 }
@@ -59,7 +59,7 @@ uint RViz_Draw::add_node(Node n)
 {
     geometry_msgs::Point p;
     p.x = n.xpos;
-    p.y = -n.ypos;
+    p.y = n.ypos;
     p.z = 0;
     objs.points.push_back(p);
     return objs.points.size() - 1;

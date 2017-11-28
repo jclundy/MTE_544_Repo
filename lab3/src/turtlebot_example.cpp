@@ -28,6 +28,7 @@
 
 ros::Publisher marker_pub;
 RViz_Draw drawer;
+RViz_Draw drawer_waypoints;
 RViz_Draw drawer_refreshable;
 #define GRID_SIZE 100
 #define NUM_SAMPLES 500
@@ -146,7 +147,7 @@ void generate_graph(const nav_msgs::OccupancyGrid& msg, ros::Publisher publisher
   //graph.draw_in_rviz(publisher,10, 0, 1, 0, 1, "node_samples");
   //ROS_INFO("before pruning edges \n");
   graph.print_graph_to_console();
-  graph.prune_invalid_connections(occ_grid, 0.3, 0);
+  graph.prune_invalid_connections(occ_grid, 0.9, 0);
   //ROS_INFO("after pruning edges \n");
   //graph.print_graph_to_console();
   drawer.update_color(0,0,1,1);
@@ -197,16 +198,16 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
     Node n;
 
     // Place start and end nodes
-    drawer.claim(visualization_msgs::Marker::POINTS);
-    drawer.update_color(0,1,0,1);
-    drawer.update_scale(0.1, 0.1);
+    drawer_waypoints.claim(visualization_msgs::Marker::POINTS);
+    drawer_waypoints.update_color(0,1,0,1);
+    drawer_waypoints.update_scale(0.1, 0.1);
     for(int k = 0; k < checkpoints.size(); k++) {
         if(graph.add_new_node(checkpoints[k])) {
-            drawer.add_node(checkpoints[k]);
+            drawer_waypoints.add_node(checkpoints[k]);
         }
     }
-    drawer.pub();
-    drawer.release();
+    drawer_waypoints.pub();
+    drawer_waypoints.release();
 
     // Random node placement
     drawer.claim(visualization_msgs::Marker::POINTS);
@@ -481,7 +482,7 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
 int main(int argc, char **argv)
 {
     // Set start and end points
-    Node startNode = Node(0, 4, 0, 0);
+    Node startNode = Node(0, 0, 0, 0);
     Node midNode = Node(1, 8, -4, 0);
     Node endNode = Node(2, 8, 0, 0);
 
@@ -497,6 +498,7 @@ int main(int argc, char **argv)
     Node graphNode(0,0,0,0);
     ROS_INFO("defined a new node index : %d,%d x: %f y: %f", graphNode.xindex, graphNode.yindex, graphNode.xpos, graphNode.ypos);
     drawer = RViz_Draw(n, "visualization_marker", false); //Initialize drawer for rviz
+    drawer_waypoints = RViz_Draw(n, "waypoint_markers", false); //Initialize drawer for rviz
     ROS_INFO("----Starting----");
 
     //Subscribe to the desired topics and assign callbacks
@@ -540,7 +542,7 @@ int main(int argc, char **argv)
   //  Node node2(2, 10, 10);
   //  Node node3(3, -10, 10);
   //  Node node4(4, -10, -10);
-
+    waypoints.push_back(&startNode);
     astar(nodeList, waypoints, startNode.index, midNode.index);
     astar(nodeList, waypoints, midNode.index, endNode.index);
 /*
@@ -566,17 +568,19 @@ int main(int argc, char **argv)
 */
 
     //draw the path/waypoints
-    drawer.claim(visualization_msgs::Marker::LINE_STRIP);
-    drawer.update_scale(0.2, 0.2);
-    drawer.update_color(1,1,1,1);
+    drawer_waypoints.claim(visualization_msgs::Marker::LINE_STRIP);
+    drawer_waypoints.update_scale(0.2, 0.2);
+    drawer_waypoints.update_color(1,1,1,1);
     for(int i = 0; i < num_waypoints; i++) {
-       drawer.add_node(*waypoints[i]);
+       drawer_waypoints.add_node(*waypoints[i]);
     }
-    drawer.pub();
-    drawer.release();
+    drawer_waypoints.pub();
+    drawer_waypoints.release();
 
 
     float theta_error = 0;
+
+    int direction = 1;
     while (ros::ok())
     {
         drawer_refreshable = RViz_Draw(n_refreshable,"refreshable_visualize_points",true);
@@ -584,12 +588,9 @@ int main(int argc, char **argv)
         loop_rate.sleep(); //Maintain the loop rate
         ros::spinOnce();   //Check for new messages
 
+        ROS_INFO("Wpt_ind : %i ; Direction %i; Node index: %i", wpt_ind, direction, waypoints[wpt_ind]->index);
 
         //TODO: END execution here, this is when we are finished traversing the maze
-        if (wpt_ind >= num_waypoints)
-        {
-            wpt_ind = 0;
-        }
 
         float error_mag = get_error_magnitude(waypoints[wpt_ind]->xpos, waypoints[wpt_ind]->ypos);
         theta_error = set_speed(waypoints[wpt_ind]->xpos, waypoints[wpt_ind]->ypos, theta_error, velocity_publisher);
@@ -634,7 +635,13 @@ int main(int argc, char **argv)
 
         if (error_mag < 0.08)
         {
-            wpt_ind++;
+            if ((wpt_ind > num_waypoints - 2 && direction == 1) || (wpt_ind < 1 && direction == -1))
+            {
+                direction *= -1;
+                ROS_INFO("Switching Direction");
+            }
+
+            wpt_ind += direction;
         }
     }
     return 0;
