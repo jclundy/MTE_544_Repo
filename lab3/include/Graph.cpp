@@ -54,7 +54,7 @@ double Graph::calculate_distance(int i, int j)
 	return std::sqrt(dx*dx + dy*dy);
 }
 
-void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotSize, double isEmptyValue)
+void Graph::prune_invalid_connections(double occ_grid[][100], double robotSize, double isEmptyValue)
 {
 	// Idea: iterate through list of nodes
 	// for each node, iterate through its list of edges
@@ -90,7 +90,7 @@ void Graph::prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotS
 			}
 			// check if the edge results in a collision
 			//ROS_INFO("Checking for collision");
-			bool isCollisionFree = isConnectionValid(startIndex, endIndex, map, robotSize, isEmptyValue);
+			bool isCollisionFree = isConnectionValid(startIndex, endIndex, occ_grid, robotSize, isEmptyValue);
 			if(isCollisionFree)
 			{
 				// mark edge as validated
@@ -146,7 +146,7 @@ bool Graph::areAllEdgesValidated()
 }
 
 
-bool Graph::isConnectionValid(int startIndex, int endIndex, nav_msgs::OccupancyGrid& map, double robotSize, int isEmptyValue)
+bool Graph::isConnectionValid(int startIndex, int endIndex, double occ_grid[][100], double robotSize, int isEmptyValue)
 {
 	//Node &startNode, Node &endNode
 	// Determining if connection valid:
@@ -161,10 +161,6 @@ bool Graph::isConnectionValid(int startIndex, int endIndex, nav_msgs::OccupancyG
 	// 		check N tiles above/below tile in list from step 2 in section above
 	// for vertical:
 	// check N tiles to left/right of tile in list from above
-
-	double xMapStart = map.info.origin.position.x;
-	double yMapStart = map.info.origin.position.y;
-	double mapResolution = map.info.resolution;
 
 	int x0 = nodeList[startIndex].xindex;
 	int y0 = nodeList[startIndex].yindex;
@@ -185,10 +181,10 @@ bool Graph::isConnectionValid(int startIndex, int endIndex, nav_msgs::OccupancyG
 	int padding = 0;
 	bool checkVertical = 0;
 	bool checkHorizontal = 0;
-	if(robotSize > mapResolution)
+	if(robotSize > resolution)
 	{
 		// need to check additional tiles
-		int ratio = robotSize/mapResolution;
+		int ratio = robotSize/resolution;
 		// round ratio up to odd value
 		if(ratio % 2 == 0) ratio += 1;
 		// this is how many tiles above/below or right/left center tile that will be checked as well
@@ -209,30 +205,21 @@ bool Graph::isConnectionValid(int startIndex, int endIndex, nav_msgs::OccupancyG
 	{
 		int xIndex = xTileIndices[i];
 		int yIndex = yTileIndices[i];
-		//int mapDataIndex = xIndex *map.info.width + yIndex;
-		//int value = map.data[mapDataIndex];
-		//ROS_INFO("X,Y (%i, %i), Map Index %i with value %i", xIndex, yIndex, mapDataIndex,value);
-		/*if(map.data[mapDataIndex] > isEmptyValue)
-		{
-			//ROS_INFO("Invalid Connection %i, %i, with value %d", nodeList[startIndex].index, nodeList[endIndex].index, map.data[mapDataIndex]);
-			return false;
-		}*/
+
 		// iterate through tiles adjacent to
 		for(int j = -padding; j<=padding; j++)
 		{
 			// calculate index of tiles avbove/below
 			int modifiedXIndex = xIndex + j * checkHorizontal;
 			int modifiedYIndex = yIndex + j * checkVertical;
-			int mapDataIndex = modifiedXIndex + modifiedYIndex*map.info.width;  //TODO THIS SHOULD BE PASSED IN
 			// skip check if index is out of bounds
-			int size = map.data.size();
-			if(mapDataIndex >= size)
+			if(modifiedXIndex >= graphSize || modifiedYIndex >= graphSize)
 			{
 				////ROS_INFO("mapDataIndex %i out of bounds %i",mapDataIndex, size);
 				return false;
 			}
 			// if the value at mapDataIndex is occupied, there is a collision
-			if(map.data[mapDataIndex] > isEmptyValue)
+			if(occ_grid[modifiedXIndex][modifiedYIndex] > isEmptyValue)
 			{
 				return false;
 			}

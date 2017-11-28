@@ -91,8 +91,8 @@ void generate_graph(const nav_msgs::OccupancyGrid& msg, ros::Publisher publisher
   graph.print_graph_to_console();
   //drawer.update_color(0, 1, 0, 1);
   //graph.draw_in_rviz(&drawer);
-  graph.prune_invalid_connections(msg, 0.3, 0);
-  
+  graph.prune_invalid_connections(occ_grid, 0.3, 0);
+
   ROS_INFO("after pruning edges \n");
   graph.print_graph_to_console();
   drawer.update_color(0, 0, 1, 1);
@@ -198,7 +198,7 @@ bool test_graph_initialization(Graph &test_graph)
 		{
 			ROS_INFO("Y value %i of node %i not equal to intialized Y %i", i, y, y_correct);
 			test_passed = false;
-		}		
+		}
 	}
 	ROS_INFO("test_graph_initialization passed : %i", test_passed);
 	return test_passed;
@@ -206,7 +206,7 @@ bool test_graph_initialization(Graph &test_graph)
 
 bool test_graph_edge_generation(Graph &test_graph, double max_distance)
 {
-	bool test_passed = true;	
+	bool test_passed = true;
 	// test that all edges of node are within specified distance
 	for(int i = 0; i < TEST_GRAPH_NODE_COUNT; i++)
 	{
@@ -220,9 +220,9 @@ bool test_graph_edge_generation(Graph &test_graph, double max_distance)
 				ROS_INFO("Cost %f of edge %i, %i greater than allowed max distance %f", cost, i, endNodeIndex, max_distance);
 				test_passed = false;
 			}
-		}	
+		}
 	}
-	
+
 	for(int i = 0; i < TEST_GRAPH_NODE_COUNT; i++)
 	{
 		for (int j = i+1; j < TEST_GRAPH_NODE_COUNT; j++)
@@ -266,7 +266,7 @@ bool test_graph_edge_generation(Graph &test_graph, double max_distance)
 				ROS_INFO("Cost %f of edge %i, %i does not equal distance %f between nodes", cost, i, endNodeIndex, distance);
 				test_passed = false;
 			}
-		}	
+		}
 	}
 	ROS_INFO("test_graph_edge_generation passed : %i", test_passed);
 	return test_passed;
@@ -319,10 +319,10 @@ bool test_edge_removal()
 
 int main(int argc, char **argv)
 {
-	
+
 
 	Graph test_graph;
-	
+
 
 	bool done = false;
 	ros::init(argc,argv,"main_control");
@@ -330,7 +330,7 @@ int main(int argc, char **argv)
     drawer = RViz_Draw(n);
 	ros::Subscriber map_sub = n.subscribe("/map", 1, map_callback);
 	ROS_INFO("Beginning of graph tests");
-	ros::Rate loop_rate(20); 
+	ros::Rate loop_rate(20);
 	while (ros::ok() && !done)
 	{
 	    loop_rate.sleep();
@@ -351,7 +351,7 @@ int main(int argc, char **argv)
 	// test_graph_initialization(test_graph);
 
 	// ROS_INFO("Test 2 - edges properly generated");
-	// double max_distance = GRID_SIZE*1.41; // distance from opposite corners 
+	// double max_distance = GRID_SIZE*1.41; // distance from opposite corners
 	// test_graph.generate_connections(TEST_GRAPH_NODE_COUNT, max_distance);
 	// test_graph_edge_generation(test_graph, max_distance);
 

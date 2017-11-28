@@ -18,6 +18,8 @@ public:
 	int startIndex;
 	int endIndex;
 	std::vector<Node> nodeList;
+    int graphSize;
+    double resolution;
 
 	Graph();
 
@@ -25,7 +27,7 @@ public:
 
 	void generate_connections(int connectionsPerNode, double maxDistance);
 
-	void prune_invalid_connections(nav_msgs::OccupancyGrid map, double robotSize, double isEmptyValue);
+	void prune_invalid_connections(double occ_grid[][100], double robotSize, double isEmptyValue);
 
     bool add_new_node(Node n);
 
@@ -40,7 +42,7 @@ public:
 private:
 	double calculate_distance(Node &start, Node &end);
 
-	bool isConnectionValid(int startIndex, int endIndex, nav_msgs::OccupancyGrid& map, double robotSize, int isEmptyValue);
+	bool isConnectionValid(int startIndex, int endIndex, double occ_grid[][100], double robotSize, int isEmptyValue);
 
 	void bresenham(int x0, int y0, int x1, int y1, std::vector<int>& x, std::vector<int>& y);
 };
