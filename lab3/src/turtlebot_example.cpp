@@ -181,7 +181,7 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
     Node n;
 
     // Place start and end nodes
-    /*drawer.claim(visualization_msgs::Marker::POINTS);
+    drawer.claim(visualization_msgs::Marker::POINTS);
     drawer.update_color(0,1,0,1);
     drawer.update_scale(0.1, 0.1);
     for(int k = 0; k < checkpoints.size(); k++) {
@@ -190,7 +190,7 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
         }
     }
     drawer.pub();
-    drawer.release();*/
+    drawer.release();
 
     // Random node placement
     drawer.claim(visualization_msgs::Marker::POINTS);
@@ -437,11 +437,18 @@ void astar(std::vector<Node*>& nodes, std::vector<Node*>& spath, int start_index
     ROS_INFO("Done iterating through graph, finding waypoints");
 
     Node* temp = best_node;
+    std::vector <int> waypoint_ind;
     while (temp->back_pointer_index != -1)
     {
-        ROS_INFO("test %i", temp->back_pointer_index);
-        spath.push_back(temp);
+//        ROS_INFO("test %i", temp->back_pointer_index);
+        waypoint_ind.push_back(temp->index);
         temp = nodes[temp->back_pointer_index];
+    }
+
+    for (int i = waypoint_ind.size()-1; i >= 0; i --)
+    {
+        ROS_INFO("WP: %i", nodes[waypoint_ind[i]]->index);
+        spath.push_back(nodes[waypoint_ind[i]]);
     }
 
     ROS_INFO("Finished A* Path:");
@@ -533,17 +540,17 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    //TODO: redo with proper scaling once coded
+/*    //TODO: redo with proper scaling once codedresu
     for(int i = 0; i < num_waypoints; i++) {
         waypoints[i]->xindex *= 0.1;
         waypoints[i]->yindex *= 0.1;
     }
-
+*/
 
     //draw the path/waypoints
     drawer.claim(visualization_msgs::Marker::LINE_STRIP);
     drawer.update_scale(0.2, 0.2);
-    drawer.update_color(1,0,0,1);
+    drawer.update_color(1,1,1,1);
     for(int i = 0; i < num_waypoints; i++) {
        drawer.add_node(*waypoints[i]);
     }
@@ -566,8 +573,8 @@ int main(int argc, char **argv)
             wpt_ind = 0;
         }
 
-        float error_mag = get_error_magnitude(waypoints[wpt_ind]->xindex, waypoints[wpt_ind]->yindex);
-        theta_error = set_speed(waypoints[wpt_ind]->xindex, waypoints[wpt_ind]->yindex, theta_error, velocity_publisher);
+        float error_mag = get_error_magnitude(waypoints[wpt_ind]->xpos, waypoints[wpt_ind]->ypos);
+        theta_error = set_speed(waypoints[wpt_ind]->xpos, waypoints[wpt_ind]->ypos, theta_error, velocity_publisher);
         //ROS_INFO("theta_error = %f,   x,y = %f \t %f    dist=%f", theta_error, ips_x, ips_y, error_mag);
 
 
@@ -576,7 +583,7 @@ int main(int argc, char **argv)
         drawer_refreshable.claim(visualization_msgs::Marker::POINTS);
         drawer_refreshable.update_color(1, 0, 1, 1);
         drawer_refreshable.update_scale(0.5, 0.5);
-        drawer_refreshable.add_point(ips_x, ips_y);
+        drawer_refreshable.add_node(Node(-1,ips_x, ips_y, false));
         drawer_refreshable.pub();
         drawer_refreshable.release();
 
@@ -591,7 +598,19 @@ int main(int argc, char **argv)
         drawer_refreshable.claim(visualization_msgs::Marker::POINTS);
         drawer_refreshable.update_color(1, 0, 0, 1);
         drawer_refreshable.update_scale(0.2, 0.2);
-        drawer_refreshable.add_point(ips_x + 0.5*cos(ips_yaw),ips_y + 0.5*sin(ips_yaw));
+        drawer_refreshable.add_node(Node(-1, ips_x + 0.5*cos(ips_yaw), ips_y + 0.5*sin(ips_yaw),false));
+        drawer_refreshable.pub();
+        drawer_refreshable.release();
+
+        //draw robot facing direction marker
+        drawer_refreshable.claim(visualization_msgs::Marker::POINTS);
+        drawer_refreshable.update_color(1, 1, 1, 1);
+        drawer_refreshable.update_scale(0.5, 0.5);
+        drawer_refreshable.add_node(Node(-1, 0, 0, false));
+        drawer_refreshable.add_node(Node(-1, -1, 5, false));
+        drawer_refreshable.add_node(Node(-1, 9, 5, false));
+        drawer_refreshable.add_node(Node(-1, 9, -5, false));
+        drawer_refreshable.add_node(Node(-1, -1, -5, false));
         drawer_refreshable.pub();
         drawer_refreshable.release();
 
