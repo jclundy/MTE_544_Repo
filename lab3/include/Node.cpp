@@ -75,7 +75,7 @@ void Node::setIndex(int x, int y)
     xindex = x;
     yindex = y;
     xpos = x/10.0 - 1;
-    ypos = y/10.0 - 5;
+    ypos = 5 - y/10.0;
 }
 
 void Node::setPos(double x, double y)
@@ -83,5 +83,5 @@ void Node::setPos(double x, double y)
     xpos = x;
     ypos = y;
     xindex = int((x+1)*10);
-    yindex = int((y+5)*10);
+    yindex = int(-(y-5)*10);
 }
