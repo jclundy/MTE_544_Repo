@@ -12,9 +12,9 @@ RViz_Draw::RViz_Draw(ros::NodeHandle n, std::string marker_topic, bool latch)
     objs.header.stamp = ros::Time::now();
     objs.ns = "lab3";
     objs.action = visualization_msgs::Marker::ADD;
-    objs.pose.orientation.z = 1;
-    objs.pose.position.x = 10;
-    objs.pose.position.y = 0;
+    //objs.pose.orientation.z = 1;
+    //objs.pose.position.x = 10;
+    //objs.pose.position.y = 0;
     objs.id = 0;
 
     //objs formatting
@@ -39,8 +39,8 @@ uint RViz_Draw::add_point(double x, double y)
 {
     //ROS_INFO("WARNING: add_point is not supported. If possible, use add_node. Otherwise, use this method with caution.");
     geometry_msgs::Point p;
-    p.x = 10-x;
-    p.y = y;
+    p.x = x;
+    p.y = -y;
     p.z = 0;
     objs.points.push_back(p);
     return objs.points.size() - 1;
@@ -50,7 +50,7 @@ void RViz_Draw::move_point(int point_id, double x, double y)
 {
     geometry_msgs::Point p;
     p.x = x;
-    p.y = y;
+    p.y = -y;
     p.z = 0;
     objs.points[point_id] = p;
 }
@@ -58,8 +58,8 @@ void RViz_Draw::move_point(int point_id, double x, double y)
 uint RViz_Draw::add_node(Node n)
 {
     geometry_msgs::Point p;
-    p.x = 10-n.xpos;
-    p.y = n.ypos;
+    p.x = n.xpos;
+    p.y = -n.ypos;
     p.z = 0;
     objs.points.push_back(p);
     return objs.points.size() - 1;

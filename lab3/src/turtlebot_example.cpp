@@ -171,13 +171,16 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
         return;
     }
 
+    double new_occ_grid[GRID_SIZE][GRID_SIZE];
+
     drawer.update_map_details(msg.info.resolution, msg.info.origin.position.x, msg.info.origin.position.y-5);
     graph.resolution = msg.info.resolution;
     graph.graphSize = GRID_SIZE;
 
     // Reformat input map
     for(int i = 0; i < GRID_SIZE*GRID_SIZE; i++) {
-        occ_grid[i%GRID_SIZE][i/GRID_SIZE] = msg.data[i];
+        occ_grid[i%GRID_SIZE][GRID_SIZE-1-(i/GRID_SIZE)] = msg.data[i];
+        new_occ_grid[i%GRID_SIZE][GRID_SIZE-1-(i/GRID_SIZE)] = msg.data[i];
     }
 
     Node n;
@@ -205,6 +208,7 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
         n = Node(graph.nodeList.size(), x, y, 1);
         if(occ_grid[x][y] == 0 && graph.add_new_node(n)) {
             drawer.add_node(n);
+            new_occ_grid[x][y] = -10;
             j++;
         }
     }
@@ -220,6 +224,7 @@ void map_callback(const nav_msgs::OccupancyGrid& msg)
     drawer.release();
 
     //map_print(occ_grid);
+    map_print(new_occ_grid);
 
     // Publish sampling nodes to RVIZ
     generate_graph(msg, marker_pub);
